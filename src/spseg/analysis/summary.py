@@ -138,9 +138,9 @@ def build_summary(
         notes.append(f"Sem {POPULACAO_FILE} em data/reference: taxas por habitante ficam 'n/d'.")
     if not reference.status.domicilios:
         notes.append(f"Sem {DOMICILIOS_FILE} em data/reference: taxas por domicílio ficam 'n/d'.")
-    if not reference.status.bairros:
+    if not reference.status.distritos:
         notes.append(
-            "Sem bairros_sp.geojson: resolução usa apenas o texto do campo BAIRRO "
+            "Sem distritos_sp.geojson: resolução usa apenas o texto do campo BAIRRO "
             "(sem fallback por coordenadas)."
         )
     if reference.status.issues:

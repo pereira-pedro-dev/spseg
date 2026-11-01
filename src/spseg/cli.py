@@ -109,7 +109,7 @@ def ingest(
         for warning in result.warnings:
             CONSOLE.print(f"[yellow]{result.year}:[/yellow] {warning}")
     CONSOLE.print(
-        f"[dim]Referência v{reference.version}: {len(reference.entries)} bairros. "
+        f"[dim]Referência v{reference.version}: {len(reference.entries)} distritos. "
         f"Taxonomia provisória: {_taxonomy_label(reference)}.[/dim]"
     )
 
@@ -268,7 +268,7 @@ def doctor() -> None:
     console.print(f"cache de fatos: {facts_years or 'ausente'}")
     status = reference.status
     console.print(
-        f"referência v{reference.version}: bairros={status.bairros} "
+        f"referência v{reference.version}: distritos={status.distritos} "
         f"população={status.populacao} domicílios={status.domicilios} "
         f"aliases={status.aliases} taxonomia={status.taxonomia}"
     )

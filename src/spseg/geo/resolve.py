@@ -1,4 +1,4 @@
-"""Resolve o campo `BAIRRO` (texto livre) para um bairro canônico."""
+"""Resolve `BAIRRO` (texto livre) e/ou coordenadas para um distrito canônico."""
 
 from __future__ import annotations
 
@@ -9,6 +9,7 @@ import pandas as pd
 from rapidfuzz import fuzz, process
 
 from spseg.config import (
+    BATCH_FUZZY,
     FUZZY_MARGIN,
     FUZZY_SUGGESTION_LIMIT,
     FUZZY_THRESHOLD,
@@ -66,7 +67,7 @@ class BairroResolver:
 
     def find(self, query: str) -> tuple[RegistryEntry, str, float] | None:
         """Resolve um nome digitado pelo usuário (exato, alias ou aproximado)."""
-        hit = self._resolve_key(normalize_key(query))
+        hit = self._resolve_key(normalize_key(query), fuzzy=True)
         if hit is None:
             return None
         return hit.entry, hit.method, hit.confidence
@@ -96,7 +97,7 @@ class BairroResolver:
         unique_keys = pd.Series(keys[~suppressed].unique(), dtype="string")
         resolved: dict[str, tuple] = {}
         for key in unique_keys:
-            hit = self._resolve_key(str(key))
+            hit = self._resolve_key(str(key), fuzzy=BATCH_FUZZY)
             if hit is not None:
                 resolved[str(key)] = (
                     hit.entry.bairro_id,
@@ -138,7 +139,7 @@ class BairroResolver:
         joined.loc[suppressed, "bairro_method"] = "suppressed"
         joined.loc[suppressed, "bairro_id"] = pd.NA
 
-        self._apply_geo(frame, keys, suppressed, joined)
+        self._apply_geo(frame, suppressed, joined)
 
         return pd.DataFrame(
             {
@@ -153,14 +154,14 @@ class BairroResolver:
 
     # ------------------------------------------------------------------ internos
 
-    def _resolve_key(self, key: str) -> _Hit | None:
+    def _resolve_key(self, key: str, *, fuzzy: bool) -> _Hit | None:
         if not key:
             return None
         if key in self.by_key:
             return _Hit(self.entries[self.by_key[key]], "exact", 1.0)
         if key in self.aliases:
             return _Hit(self.entries[self.aliases[key]], "alias", 1.0)
-        if not self.keys:
+        if not fuzzy or not self.keys:
             return None
 
         matches = process.extract(key, self.keys, scorer=fuzz.WRatio, limit=2)
@@ -177,10 +178,14 @@ class BairroResolver:
     def _apply_geo(
         self,
         frame: pd.DataFrame,
-        keys: pd.Series,
         suppressed: pd.Series,
         joined: pd.DataFrame,
     ) -> None:
+        """Sobrepõe a resolução por texto quando a coordenada cai num polígono.
+
+        A coordenada é o sinal mais confiável (D3): mesmo que `BAIRRO` case com
+        outro distrito, o hit geográfico vence. O texto fica como fallback.
+        """
         if self.polygons is None or "latitude" not in frame.columns:
             return
         lat = pd.to_numeric(frame["latitude"], errors="coerce").astype("float64")
@@ -190,7 +195,7 @@ class BairroResolver:
             & lon.between(LON_MIN, LON_MAX)
             & ~((lat == 0) & (lon == 0))
         )
-        geo_candidates = joined["bairro_method"].eq("unresolved") & ~suppressed & inside
+        geo_candidates = ~suppressed & inside
         if not geo_candidates.any():
             return
 
@@ -215,7 +220,7 @@ class BairroResolver:
         joined.loc[found, "bairro_nome"] = units[found].map(lambda unit: unit.bairro_nome)
         joined.loc[found, "distrito_id"] = units[found].map(lambda unit: unit.distrito_id)
         joined.loc[found, "bairro_method"] = "geo"
-        joined.loc[found, "bairro_confidence"] = 0.8
+        joined.loc[found, "bairro_confidence"] = 0.9
 
 
 def registry_from_frame(frame: pd.DataFrame) -> list[RegistryEntry]:

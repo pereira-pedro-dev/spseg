@@ -127,6 +127,6 @@ def polygon_features() -> list[dict]:
 
 def write_polygons(settings) -> None:
     payload = {"type": "FeatureCollection", "features": polygon_features()}
-    (settings.reference_dir / "bairros_sp.geojson").write_text(
+    (settings.reference_dir / "distritos_sp.geojson").write_text(
         json.dumps(payload), encoding="utf-8"
     )

@@ -18,6 +18,10 @@ FUZZY_THRESHOLD = 92.0
 FUZZY_MARGIN = 4.0
 FUZZY_SUGGESTION_LIMIT = 5
 
+# No lote, fuzzy casa nome de bairro contra nome de distrito e erra calado
+# (ex.: JARDIM PAULISTA). Só exact/alias; fuzzy fica para a busca do usuário.
+BATCH_FUZZY = False
+
 # Limites aproximados do estado de São Paulo.
 LAT_MIN, LAT_MAX = -26.0, -19.0
 LON_MIN, LON_MAX = -54.0, -43.0

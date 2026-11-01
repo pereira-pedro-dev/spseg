@@ -2,17 +2,31 @@
 
 Scripts auxiliares, executáveis com `uv run python scripts/<nome>.py`.
 
-## Ainda não implementados
+## Implementados
 
-- **`build_reference.py`** — a partir do GeoJSON de bairros/distritos do
-  GeoSampa e dos agregados do IBGE Censo 2022, gera:
-  - `data/reference/bairros_sp.geojson` (com `bairro_id`, `bairro_nome`,
-    `distrito_id`)
+- **`build_reference.py`** — baixa o GeoJSON de distritos do WFS do GeoSampa e
+  os agregados por distrito do IBGE Censo 2022, casa os dois pelo nome
+  normalizado e gera:
+  - `data/reference/distritos_sp.geojson` (com `bairro_id`, `bairro_nome`,
+    `distrito_id`, `nivel`)
   - `data/reference/populacao_bairro.csv`
   - `data/reference/domicilios_bairro.csv`
-- **`build_aliases.py`** — varre as grafias de `BAIRRO` no cache, compara com os
-  nomes canônicos e sugere linhas para `data/reference/bairro_aliases.csv`
-  (revisão manual).
+  - `data/reference/SOURCES.md` (URLs, SHA-256 e variáveis)
+
+  ```bash
+  uv run python scripts/build_reference.py            # baixa e monta
+  uv run python scripts/build_reference.py --check    # valida sem rede
+  uv run python scripts/build_reference.py --offline  # usa downloads locais
+  ```
+
+  Os arquivos crus ficam em `data/reference/downloads/` (ignorado pelo git).
+  `--simplify 0.00005` reduz ~3,7 MB para ~1 MB, ao custo de precisão na divisa.
+
+## Ainda não implementados
+
+- **`build_aliases.py`** — varre as grafias de `BAIRRO` resolvidas por
+  coordenada, agrupa por distrito modal e grava aliases em
+  `data/reference/bairro_aliases.csv` (`n >= 5`, `share >= 0.85`).
 - **`download_ssp.py`** — baixa as planilhas da SSP e coloca em `data/raw/`
   (fora da base atual; hoje o download é manual).
 

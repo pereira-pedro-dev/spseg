@@ -7,3 +7,4 @@ __pycache__/
 *:Zone.Identifier
 data/raw/
 data/cache/
+data/reference/downloads/

@@ -1,0 +1,97 @@
+bairro_id,bairro_nome,domicilios,ano,fonte,nivel
+355030802,Alto de Pinheiros,15778,2022,IBGE Censo 2022 (DPO),distrito
+355030803,Anhanguera,26369,2022,IBGE Censo 2022 (DPO),distrito
+355030804,Aricanduva,32289,2022,IBGE Censo 2022 (DPO),distrito
+355030805,Artur Alvim,35858,2022,IBGE Censo 2022 (DPO),distrito
+355030806,Barra Funda,14580,2022,IBGE Censo 2022 (DPO),distrito
+355030807,Bela Vista,31184,2022,IBGE Censo 2022 (DPO),distrito
+355030808,Belém,20836,2022,IBGE Censo 2022 (DPO),distrito
+355030809,Bom Retiro,12397,2022,IBGE Censo 2022 (DPO),distrito
+355030811,Brasilândia,86713,2022,IBGE Censo 2022 (DPO),distrito
+355030810,Brás,16183,2022,IBGE Censo 2022 (DPO),distrito
+355030812,Butantã,21386,2022,IBGE Censo 2022 (DPO),distrito
+355030813,Cachoeirinha,52403,2022,IBGE Censo 2022 (DPO),distrito
+355030814,Cambuci,19094,2022,IBGE Censo 2022 (DPO),distrito
+355030815,Campo Belo,30581,2022,IBGE Censo 2022 (DPO),distrito
+355030816,Campo Grande,44486,2022,IBGE Censo 2022 (DPO),distrito
+355030817,Campo Limpo,87484,2022,IBGE Censo 2022 (DPO),distrito
+355030818,Cangaiba,51568,2022,IBGE Censo 2022 (DPO),distrito
+355030819,Capão Redondo,99035,2022,IBGE Censo 2022 (DPO),distrito
+355030820,Carrão,31976,2022,IBGE Censo 2022 (DPO),distrito
+355030821,Casa Verde,30143,2022,IBGE Censo 2022 (DPO),distrito
+355030822,Cidade Ademar,91371,2022,IBGE Censo 2022 (DPO),distrito
+355030823,Cidade Dutra,64980,2022,IBGE Censo 2022 (DPO),distrito
+355030824,Cidade Lider,48258,2022,IBGE Censo 2022 (DPO),distrito
+355030825,Cidade Tiradentes,67533,2022,IBGE Censo 2022 (DPO),distrito
+355030826,Consolação,27483,2022,IBGE Censo 2022 (DPO),distrito
+355030827,Cursino,39354,2022,IBGE Censo 2022 (DPO),distrito
+355030828,Ermelino Matarazzo,40348,2022,IBGE Censo 2022 (DPO),distrito
+355030829,Freguesia do Ó,51347,2022,IBGE Censo 2022 (DPO),distrito
+355030830,Grajaú,133451,2022,IBGE Censo 2022 (DPO),distrito
+355030831,Guaianases,38429,2022,IBGE Censo 2022 (DPO),distrito
+355030833,Iguatemi,51301,2022,IBGE Censo 2022 (DPO),distrito
+355030834,Ipiranga,46322,2022,IBGE Censo 2022 (DPO),distrito
+355030835,Itaim Bibi,47979,2022,IBGE Censo 2022 (DPO),distrito
+355030836,Itaim Paulista,70881,2022,IBGE Censo 2022 (DPO),distrito
+355030837,Itaquera,75049,2022,IBGE Censo 2022 (DPO),distrito
+355030838,Jabaquara,82880,2022,IBGE Censo 2022 (DPO),distrito
+355030840,Jaguara,9214,2022,IBGE Censo 2022 (DPO),distrito
+355030841,Jaguaré,21072,2022,IBGE Censo 2022 (DPO),distrito
+355030842,Jaraguá,74522,2022,IBGE Censo 2022 (DPO),distrito
+355030844,Jardim Helena,44238,2022,IBGE Censo 2022 (DPO),distrito
+355030845,Jardim Paulista,39982,2022,IBGE Censo 2022 (DPO),distrito
+355030846,Jardim São Luís,94550,2022,IBGE Censo 2022 (DPO),distrito
+355030843,Jardim Ângela,109967,2022,IBGE Censo 2022 (DPO),distrito
+355030839,Jaçanã,30463,2022,IBGE Censo 2022 (DPO),distrito
+355030847,José Bonifácio,45692,2022,IBGE Censo 2022 (DPO),distrito
+355030896,Lajeado,56341,2022,IBGE Censo 2022 (DPO),distrito
+355030848,Lapa,31858,2022,IBGE Censo 2022 (DPO),distrito
+355030849,Liberdade,31166,2022,IBGE Censo 2022 (DPO),distrito
+355030850,Limão,31276,2022,IBGE Censo 2022 (DPO),distrito
+355030851,Mandaqui,39552,2022,IBGE Censo 2022 (DPO),distrito
+355030852,Marsilac,4003,2022,IBGE Censo 2022 (DPO),distrito
+355030832,Moema,37523,2022,IBGE Censo 2022 (DPO),distrito
+355030853,Mooca,31928,2022,IBGE Censo 2022 (DPO),distrito
+355030854,Morumbi,18557,2022,IBGE Censo 2022 (DPO),distrito
+355030855,Parelheiros,51180,2022,IBGE Censo 2022 (DPO),distrito
+355030856,Pari,5478,2022,IBGE Censo 2022 (DPO),distrito
+355030857,Parque do Carmo,26301,2022,IBGE Censo 2022 (DPO),distrito
+355030858,Pedreira,57124,2022,IBGE Censo 2022 (DPO),distrito
+355030859,Penha,49812,2022,IBGE Censo 2022 (DPO),distrito
+355030860,Perdizes,46171,2022,IBGE Censo 2022 (DPO),distrito
+355030861,Perus,30505,2022,IBGE Censo 2022 (DPO),distrito
+355030862,Pinheiros,31159,2022,IBGE Censo 2022 (DPO),distrito
+355030863,Pirituba,68308,2022,IBGE Censo 2022 (DPO),distrito
+355030864,Ponte Rasa,32237,2022,IBGE Censo 2022 (DPO),distrito
+355030865,Raposo Tavares,42731,2022,IBGE Censo 2022 (DPO),distrito
+355030866,República,31247,2022,IBGE Censo 2022 (DPO),distrito
+355030867,Rio Pequeno,48302,2022,IBGE Censo 2022 (DPO),distrito
+355030868,Sacomã,98466,2022,IBGE Censo 2022 (DPO),distrito
+355030869,Santa Cecília,39725,2022,IBGE Censo 2022 (DPO),distrito
+355030870,Santana,46550,2022,IBGE Censo 2022 (DPO),distrito
+355030871,Santo Amaro,35142,2022,IBGE Censo 2022 (DPO),distrito
+355030876,Sapopemba,94704,2022,IBGE Censo 2022 (DPO),distrito
+355030877,Saúde,55637,2022,IBGE Censo 2022 (DPO),distrito
+355030879,Socorro,14559,2022,IBGE Censo 2022 (DPO),distrito
+355030895,São Domingos,32793,2022,IBGE Censo 2022 (DPO),distrito
+355030872,São Lucas,53041,2022,IBGE Censo 2022 (DPO),distrito
+355030873,São Mateus,55735,2022,IBGE Censo 2022 (DPO),distrito
+355030874,São Miguel,28941,2022,IBGE Censo 2022 (DPO),distrito
+355030875,São Rafael,51051,2022,IBGE Censo 2022 (DPO),distrito
+355030878,Sé,10609,2022,IBGE Censo 2022 (DPO),distrito
+355030880,Tatuapé,40622,2022,IBGE Censo 2022 (DPO),distrito
+355030881,Tremembé,68552,2022,IBGE Censo 2022 (DPO),distrito
+355030882,Tucuruvi,39049,2022,IBGE Censo 2022 (DPO),distrito
+355030883,Vila Andrade,66295,2022,IBGE Censo 2022 (DPO),distrito
+355030884,Vila Curuçá,48906,2022,IBGE Censo 2022 (DPO),distrito
+355030885,Vila Formosa,35237,2022,IBGE Censo 2022 (DPO),distrito
+355030886,Vila Guilherme,20363,2022,IBGE Censo 2022 (DPO),distrito
+355030887,Vila Jacuí,46570,2022,IBGE Censo 2022 (DPO),distrito
+355030888,Vila Leopoldina,18694,2022,IBGE Censo 2022 (DPO),distrito
+355030889,Vila Maria,41908,2022,IBGE Censo 2022 (DPO),distrito
+355030890,Vila Mariana,57968,2022,IBGE Censo 2022 (DPO),distrito
+355030891,Vila Matilde,38639,2022,IBGE Censo 2022 (DPO),distrito
+355030892,Vila Medeiros,41906,2022,IBGE Censo 2022 (DPO),distrito
+355030893,Vila Prudente,42186,2022,IBGE Censo 2022 (DPO),distrito
+355030894,Vila Sônia,47478,2022,IBGE Censo 2022 (DPO),distrito
+355030801,Água Rasa,35242,2022,IBGE Censo 2022 (DPO),distrito

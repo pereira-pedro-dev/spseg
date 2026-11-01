@@ -95,7 +95,7 @@ def test_resolve_frame_marks_suppressed_location(entries):
 
 def test_resolve_frame_uses_geo_fallback(settings, entries):
     write_polygons(settings)
-    polygons = PolygonIndex.from_geojson(settings.reference_dir / "bairros_sp.geojson")
+    polygons = PolygonIndex.from_geojson(settings.reference_dir / "distritos_sp.geojson")
     frame = pd.DataFrame(
         {
             "bairro_raw": ["Lugar Nenhum", "Outro Lugar"],
@@ -110,7 +110,7 @@ def test_resolve_frame_uses_geo_fallback(settings, entries):
 
 def test_geo_fallback_ignores_invalid_coordinates(settings, entries):
     write_polygons(settings)
-    polygons = PolygonIndex.from_geojson(settings.reference_dir / "bairros_sp.geojson")
+    polygons = PolygonIndex.from_geojson(settings.reference_dir / "distritos_sp.geojson")
     frame = pd.DataFrame(
         {
             "bairro_raw": ["Lugar Nenhum"],
@@ -120,6 +120,36 @@ def test_geo_fallback_ignores_invalid_coordinates(settings, entries):
     )
     resolved = BairroResolver(entries, polygons=polygons).resolve_frame(frame)
     assert resolved["bairro_method"].tolist() == ["unresolved"]
+
+
+def test_geo_overrides_text_resolution(settings, entries):
+    write_polygons(settings)
+    polygons = PolygonIndex.from_geojson(settings.reference_dir / "distritos_sp.geojson")
+    frame = pd.DataFrame(
+        {
+            "bairro_raw": ["Pinheiros"],
+            "latitude": [-23.59],
+            "longitude": [-46.63],
+        }
+    )
+    resolved = BairroResolver(entries, polygons=polygons).resolve_frame(frame)
+    assert resolved["bairro_method"].tolist() == ["geo"]
+    assert resolved["bairro_id"].tolist() == ["vila-mariana"]
+
+
+def test_resolve_frame_does_not_use_fuzzy_by_default(entries):
+    frame = pd.DataFrame(
+        {
+            "bairro_raw": ["Pinhero"],
+            "latitude": [None],
+            "longitude": [None],
+        }
+    )
+    resolver = BairroResolver(entries, threshold=80, margin=1)
+    assert resolver.resolve_frame(frame)["bairro_method"].tolist() == ["unresolved"]
+    entry, method, _confidence = resolver.find("Pinhero")
+    assert entry.bairro_id == "pinheiros"
+    assert method == "fuzzy"
 
 
 def test_registry_from_frame_collapses_variants():

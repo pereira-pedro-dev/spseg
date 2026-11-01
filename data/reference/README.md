@@ -26,22 +26,26 @@ categorias:
 Cada registro entra em **uma** categoria: vence a regra de menor `prioridade`.
 A categoria com `padrao: true` recebe o que não casar.
 
-## `bairros_sp.geojson`
+## `distritos_sp.geojson`
 
-`FeatureCollection` com polígonos oficiais. `properties` aceitos:
+`FeatureCollection` com os 96 polígonos de distrito da capital. `properties`:
 
 - `bairro_id` (ou `id`, `codigo`)
 - `bairro_nome` (ou `nome`, `name`)
-- `distrito_id` (ou `distrito`) — opcional
+- `distrito_id` (ou `distrito`) — **obrigatório** para as taxas por
+  habitante/domicílio; sem ele o denominador fica `n/d`.
+- `nivel`: `distrito`
 
-Fonte sugerida: GeoSampa (bairros/distritos do município de São Paulo).
-Se `bairro_id` não vier nas propriedades, ele é derivado do nome normalizado.
+Fonte: `geoportal:distrito_municipal` (WFS do GeoSampa, Lei 11.220/1992).
+Hoje `bairro_id == distrito_id`; o par de colunas é mantido para o futuro
+recorte por bairro. Se `bairro_id` não vier nas propriedades, ele é derivado do
+nome normalizado.
 
 ## `populacao_bairro.csv` e `domicilios_bairro.csv`
 
 ```csv
 bairro_id,bairro_nome,populacao,ano,fonte,nivel
-3550308-pinheiros,Pinheiros,112000,2022,IBGE Censo 2022,bairro
+355030862,Pinheiros,65145,2022,IBGE Censo 2022 (universo),distrito
 ```
 
 - `populacao_bairro.csv` usa a coluna de valor `populacao`.
@@ -51,8 +55,9 @@ bairro_id,bairro_nome,populacao,ano,fonte,nivel
   quando não existe denominador por bairro.
 - `ano` e `fonte` são informativos e aparecem no resumo.
 
-Sugestão: IBGE Censo 2022 (agregados por setores censitários) somado por bairro
-oficial; ou a base de população por distrito/bairro da Prefeitura de São Paulo.
+Fonte: IBGE Censo 2022, agregados por distrito. `populacao = v0001`;
+`domicilios = v0007` (domicílios particulares ocupados). `v0002` (total de
+domicílios) fica como alternativa documentada.
 
 ## `bairro_aliases.csv`
 
@@ -63,9 +68,12 @@ JD SAO LUIS,jardim-sao-luis,curado
 
 Mapeia grafias brutas do campo `BAIRRO` para o `bairro_id` canônico. A chave é
 normalizada (sem acento, maiúscula, abreviações expandidas) antes da comparação.
+Aliases derivados dos registros geolocalizados trazem `n` e `share` em `fonte`
+(ver `scripts/build_aliases.py`).
 
 ## Construção
 
-Os scripts `scripts/build_reference.py` e `scripts/build_aliases.py` consolidam
-as fontes acima. Eles ainda não estão implementados; até lá, coloque os arquivos
-manualmente neste diretório e rode `uv run spseg ingest --force` para aplicar.
+`scripts/build_reference.py` baixa o WFS do GeoSampa e o ZIP do IBGE, casa os
+dois pelo nome normalizado e escreve o GeoJSON, os CSVs e `SOURCES.md`.
+`scripts/build_aliases.py` (M3) aprende aliases a partir do cache geolocalizado.
+Depois de gerar ou editar a referência, rode `uv run spseg ingest --force`.

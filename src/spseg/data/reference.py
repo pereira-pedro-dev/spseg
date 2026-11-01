@@ -1,4 +1,4 @@
-"""Carrega a referência opcional: bairros oficiais, população, domicílios, aliases e taxonomia."""
+"""Carrega a referência opcional: distritos oficiais, população, domicílios, aliases e taxonomia."""
 
 from __future__ import annotations
 
@@ -14,14 +14,17 @@ from spseg.geo.polygons import PolygonIndex
 from spseg.geo.text import normalize_key
 from spseg.models import RegistryEntry
 
-BAIRROS_FILE = "bairros_sp.geojson"
+DISTRITOS_FILE = "distritos_sp.geojson"
 POPULACAO_FILE = "populacao_bairro.csv"
 DOMICILIOS_FILE = "domicilios_bairro.csv"
 ALIASES_FILE = "bairro_aliases.csv"
 TAXONOMY_FILE = "crime_taxonomy.yml"
 
+# Recorte da v1: capital de São Paulo (Lei 11.220/1992).
+EXPECTED_DISTRITOS = 96
+
 REFERENCE_FILES = (
-    BAIRROS_FILE,
+    DISTRITOS_FILE,
     POPULACAO_FILE,
     DOMICILIOS_FILE,
     ALIASES_FILE,
@@ -38,7 +41,7 @@ class Denominator:
 
 @dataclass(frozen=True)
 class ReferenceStatus:
-    bairros: bool = False
+    distritos: bool = False
     populacao: bool = False
     domicilios: bool = False
     aliases: bool = False
@@ -47,7 +50,7 @@ class ReferenceStatus:
 
     def as_dict(self) -> dict[str, bool]:
         return {
-            BAIRROS_FILE: self.bairros,
+            DISTRITOS_FILE: self.distritos,
             POPULACAO_FILE: self.populacao,
             DOMICILIOS_FILE: self.domicilios,
             ALIASES_FILE: self.aliases,
@@ -56,7 +59,7 @@ class ReferenceStatus:
 
     @property
     def has_geo(self) -> bool:
-        return self.bairros
+        return self.distritos
 
     @property
     def has_rates(self) -> bool:
@@ -154,6 +157,17 @@ def _entries_from_files(
 ) -> list[RegistryEntry]:
     entries: dict[str, RegistryEntry] = {}
     if polygons is not None:
+        if len(polygons.units) != EXPECTED_DISTRITOS:
+            issues.append(
+                f"{DISTRITOS_FILE}: {len(polygons.units)} unidades (esperado "
+                f"{EXPECTED_DISTRITOS} distritos da capital)."
+            )
+        missing_distrito = [unit.bairro_nome for unit in polygons.units if not unit.distrito_id]
+        if missing_distrito:
+            issues.append(
+                f"{DISTRITOS_FILE}: {len(missing_distrito)} unidades sem distrito_id; "
+                "as taxas por população/domicílios ficam 'n/d' para elas."
+            )
         for unit in polygons.units:
             entries[unit.bairro_id] = RegistryEntry(
                 bairro_id=unit.bairro_id,
@@ -186,15 +200,17 @@ def load_reference(settings: Settings) -> ReferenceData:
     issues.extend(taxonomy_issues)
 
     polygons = None
-    geojson_path = reference_dir / BAIRROS_FILE
+    geojson_path = reference_dir / DISTRITOS_FILE
     if geojson_path.exists():
         try:
             polygons = PolygonIndex.from_geojson(geojson_path)
             if not polygons.units:
-                issues.append(f"{BAIRROS_FILE}: nenhum bairro válido encontrado.")
+                issues.append(f"{DISTRITOS_FILE}: nenhuma unidade válida encontrada.")
                 polygons = None
         except (OSError, ValueError, KeyError) as exc:
-            issues.append(f"{BAIRROS_FILE}: GeoJSON inválido ({exc}); fallback por geo desativado.")
+            issues.append(
+                f"{DISTRITOS_FILE}: GeoJSON inválido ({exc}); fallback por geo desativado."
+            )
 
     population = _load_denominators(reference_dir / POPULACAO_FILE, "populacao", issues)
     households = _load_denominators(reference_dir / DOMICILIOS_FILE, "domicilios", issues)
@@ -210,7 +226,7 @@ def load_reference(settings: Settings) -> ReferenceData:
             )
 
     status = ReferenceStatus(
-        bairros=polygons is not None,
+        distritos=polygons is not None,
         populacao=bool(population),
         domicilios=bool(households),
         aliases=bool(aliases),

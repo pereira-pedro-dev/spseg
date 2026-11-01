@@ -1,0 +1,97 @@
+bairro_id,bairro_nome,populacao,ano,fonte,nivel
+355030802,Alto de Pinheiros,37359,2022,IBGE Censo 2022 (universo),distrito
+355030803,Anhanguera,75360,2022,IBGE Censo 2022 (universo),distrito
+355030804,Aricanduva,89574,2022,IBGE Censo 2022 (universo),distrito
+355030805,Artur Alvim,95575,2022,IBGE Censo 2022 (universo),distrito
+355030806,Barra Funda,33436,2022,IBGE Censo 2022 (universo),distrito
+355030807,Bela Vista,60024,2022,IBGE Censo 2022 (universo),distrito
+355030808,Belém,55785,2022,IBGE Censo 2022 (universo),distrito
+355030809,Bom Retiro,33520,2022,IBGE Censo 2022 (universo),distrito
+355030811,Brasilândia,243273,2022,IBGE Censo 2022 (universo),distrito
+355030810,Brás,38750,2022,IBGE Censo 2022 (universo),distrito
+355030812,Butantã,51715,2022,IBGE Censo 2022 (universo),distrito
+355030813,Cachoeirinha,143366,2022,IBGE Censo 2022 (universo),distrito
+355030814,Cambuci,45163,2022,IBGE Censo 2022 (universo),distrito
+355030815,Campo Belo,71034,2022,IBGE Censo 2022 (universo),distrito
+355030816,Campo Grande,115925,2022,IBGE Censo 2022 (universo),distrito
+355030817,Campo Limpo,236162,2022,IBGE Censo 2022 (universo),distrito
+355030818,Cangaiba,141172,2022,IBGE Censo 2022 (universo),distrito
+355030819,Capão Redondo,270767,2022,IBGE Censo 2022 (universo),distrito
+355030820,Carrão,84397,2022,IBGE Censo 2022 (universo),distrito
+355030821,Casa Verde,80536,2022,IBGE Censo 2022 (universo),distrito
+355030822,Cidade Ademar,249218,2022,IBGE Censo 2022 (universo),distrito
+355030823,Cidade Dutra,182459,2022,IBGE Censo 2022 (universo),distrito
+355030824,Cidade Lider,136660,2022,IBGE Censo 2022 (universo),distrito
+355030825,Cidade Tiradentes,194177,2022,IBGE Censo 2022 (universo),distrito
+355030826,Consolação,53144,2022,IBGE Censo 2022 (universo),distrito
+355030827,Cursino,103171,2022,IBGE Censo 2022 (universo),distrito
+355030828,Ermelino Matarazzo,112333,2022,IBGE Censo 2022 (universo),distrito
+355030829,Freguesia do Ó,137240,2022,IBGE Censo 2022 (universo),distrito
+355030830,Grajaú,384873,2022,IBGE Censo 2022 (universo),distrito
+355030831,Guaianases,109316,2022,IBGE Censo 2022 (universo),distrito
+355030833,Iguatemi,149700,2022,IBGE Censo 2022 (universo),distrito
+355030834,Ipiranga,116271,2022,IBGE Censo 2022 (universo),distrito
+355030835,Itaim Bibi,101452,2022,IBGE Censo 2022 (universo),distrito
+355030836,Itaim Paulista,205295,2022,IBGE Censo 2022 (universo),distrito
+355030837,Itaquera,210960,2022,IBGE Censo 2022 (universo),distrito
+355030838,Jabaquara,214982,2022,IBGE Censo 2022 (universo),distrito
+355030840,Jaguara,24730,2022,IBGE Censo 2022 (universo),distrito
+355030841,Jaguaré,55382,2022,IBGE Censo 2022 (universo),distrito
+355030842,Jaraguá,211617,2022,IBGE Censo 2022 (universo),distrito
+355030844,Jardim Helena,129409,2022,IBGE Censo 2022 (universo),distrito
+355030845,Jardim Paulista,81859,2022,IBGE Censo 2022 (universo),distrito
+355030846,Jardim São Luís,259377,2022,IBGE Censo 2022 (universo),distrito
+355030843,Jardim Ângela,311432,2022,IBGE Censo 2022 (universo),distrito
+355030839,Jaçanã,87329,2022,IBGE Censo 2022 (universo),distrito
+355030847,José Bonifácio,128243,2022,IBGE Censo 2022 (universo),distrito
+355030896,Lajeado,164391,2022,IBGE Censo 2022 (universo),distrito
+355030848,Lapa,75533,2022,IBGE Censo 2022 (universo),distrito
+355030849,Liberdade,66056,2022,IBGE Censo 2022 (universo),distrito
+355030850,Limão,82373,2022,IBGE Censo 2022 (universo),distrito
+355030851,Mandaqui,103665,2022,IBGE Censo 2022 (universo),distrito
+355030852,Marsilac,11451,2022,IBGE Censo 2022 (universo),distrito
+355030832,Moema,81899,2022,IBGE Censo 2022 (universo),distrito
+355030853,Mooca,80880,2022,IBGE Censo 2022 (universo),distrito
+355030854,Morumbi,43690,2022,IBGE Censo 2022 (universo),distrito
+355030855,Parelheiros,153687,2022,IBGE Censo 2022 (universo),distrito
+355030856,Pari,17359,2022,IBGE Censo 2022 (universo),distrito
+355030857,Parque do Carmo,74677,2022,IBGE Censo 2022 (universo),distrito
+355030858,Pedreira,163586,2022,IBGE Censo 2022 (universo),distrito
+355030859,Penha,132452,2022,IBGE Censo 2022 (universo),distrito
+355030860,Perdizes,102391,2022,IBGE Censo 2022 (universo),distrito
+355030861,Perus,87716,2022,IBGE Censo 2022 (universo),distrito
+355030862,Pinheiros,65145,2022,IBGE Censo 2022 (universo),distrito
+355030863,Pirituba,179724,2022,IBGE Censo 2022 (universo),distrito
+355030864,Ponte Rasa,89881,2022,IBGE Censo 2022 (universo),distrito
+355030865,Raposo Tavares,117738,2022,IBGE Censo 2022 (universo),distrito
+355030866,República,60825,2022,IBGE Censo 2022 (universo),distrito
+355030867,Rio Pequeno,131631,2022,IBGE Censo 2022 (universo),distrito
+355030868,Sacomã,261436,2022,IBGE Censo 2022 (universo),distrito
+355030869,Santa Cecília,80972,2022,IBGE Censo 2022 (universo),distrito
+355030870,Santana,115689,2022,IBGE Censo 2022 (universo),distrito
+355030871,Santo Amaro,85349,2022,IBGE Censo 2022 (universo),distrito
+355030876,Sapopemba,266715,2022,IBGE Censo 2022 (universo),distrito
+355030877,Saúde,128469,2022,IBGE Censo 2022 (universo),distrito
+355030879,Socorro,38051,2022,IBGE Censo 2022 (universo),distrito
+355030895,São Domingos,88884,2022,IBGE Censo 2022 (universo),distrito
+355030872,São Lucas,138038,2022,IBGE Censo 2022 (universo),distrito
+355030873,São Mateus,155682,2022,IBGE Censo 2022 (universo),distrito
+355030874,São Miguel,81011,2022,IBGE Censo 2022 (universo),distrito
+355030875,São Rafael,148145,2022,IBGE Censo 2022 (universo),distrito
+355030878,Sé,23832,2022,IBGE Censo 2022 (universo),distrito
+355030880,Tatuapé,98601,2022,IBGE Censo 2022 (universo),distrito
+355030881,Tremembé,196563,2022,IBGE Censo 2022 (universo),distrito
+355030882,Tucuruvi,99559,2022,IBGE Censo 2022 (universo),distrito
+355030883,Vila Andrade,168669,2022,IBGE Censo 2022 (universo),distrito
+355030884,Vila Curuçá,140673,2022,IBGE Censo 2022 (universo),distrito
+355030885,Vila Formosa,92186,2022,IBGE Censo 2022 (universo),distrito
+355030886,Vila Guilherme,52587,2022,IBGE Censo 2022 (universo),distrito
+355030887,Vila Jacuí,134189,2022,IBGE Censo 2022 (universo),distrito
+355030888,Vila Leopoldina,46875,2022,IBGE Censo 2022 (universo),distrito
+355030889,Vila Maria,108543,2022,IBGE Censo 2022 (universo),distrito
+355030890,Vila Mariana,127286,2022,IBGE Censo 2022 (universo),distrito
+355030891,Vila Matilde,103558,2022,IBGE Censo 2022 (universo),distrito
+355030892,Vila Medeiros,114939,2022,IBGE Censo 2022 (universo),distrito
+355030893,Vila Prudente,105690,2022,IBGE Censo 2022 (universo),distrito
+355030894,Vila Sônia,123748,2022,IBGE Censo 2022 (universo),distrito
+355030801,Água Rasa,85788,2022,IBGE Censo 2022 (universo),distrito
