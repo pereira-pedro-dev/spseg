@@ -1,0 +1,49 @@
+[project]
+name = "spseg"
+version = "0.1.0"
+description = "Resumo de segurança por bairro a partir dos dados públicos da SSP-SP"
+requires-python = ">=3.10"
+dependencies = [
+    "pandas>=2.2",
+    "openpyxl>=3.1",
+    "pyarrow>=14",
+    "typer>=0.12",
+    "rich>=13",
+    "shapely>=2.0",
+    "pyyaml>=6",
+    "rapidfuzz>=3",
+]
+
+[project.scripts]
+spseg = "spseg.cli:app"
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "ruff>=0.6",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/spseg"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.ruff.lint.per-file-ignores]
+# Typer depende de chamadas em defaults (padrão da biblioteca).
+"src/spseg/cli.py" = ["B008"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+markers = [
+    "slow: testes que leem planilhas grandes ou fazem ingest completo",
+]

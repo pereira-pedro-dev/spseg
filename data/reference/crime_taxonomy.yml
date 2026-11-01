@@ -1,0 +1,70 @@
+versao: 1
+provisorio: true
+nota: >-
+  Regras provisórias, pendentes da sessão de metodologia. Cada registro entra em
+  uma única categoria, por ordem de prioridade (o primeiro que casar vence).
+
+categorias:
+  - id: invasao_residencia
+    rotulo: Invasão de residência
+    prioridade: 10
+    regras:
+      - tipo_local:
+          - Residência
+          - Residencia
+          - Condomínio Residencial
+          - Condominio Residencial
+          - Favela
+        natureza:
+          - FURTO - OUTROS
+          - FURTO DE VEÍCULO
+          - FURTO DE CARGA
+          - ROUBO - OUTROS
+          - ROUBO DE VEÍCULO
+          - ROUBO DE CARGA
+          - HOMICÍDIO DOLOSO
+          - TENTATIVA DE HOMICÍDIO
+          - LESÃO CORPORAL DOLOSA
+          - LESÃO CORPORAL SEGUIDA DE MORTE
+          - LATROCÍNIO
+          - ESTUPRO
+          - ESTUPRO DE VULNERÁVEL
+          - EXTORSÃO MEDIANTE SEQUESTRO
+
+  - id: violencia_sexual
+    rotulo: Violência sexual
+    prioridade: 20
+    regras:
+      - natureza:
+          - ESTUPRO
+          - ESTUPRO DE VULNERÁVEL
+
+  - id: crime_violento
+    rotulo: Crimes violentos
+    prioridade: 30
+    regras:
+      - natureza:
+          - HOMICÍDIO DOLOSO
+          - TENTATIVA DE HOMICÍDIO
+          - LATROCÍNIO
+          - LESÃO CORPORAL DOLOSA
+          - LESÃO CORPORAL SEGUIDA DE MORTE
+          - ROUBO - OUTROS
+          - ROUBO DE VEÍCULO
+          - ROUBO DE CARGA
+          - EXTORSÃO MEDIANTE SEQUESTRO
+
+  - id: crime_nao_violento
+    rotulo: Crimes não violentos
+    prioridade: 40
+    regras:
+      - natureza:
+          - FURTO - OUTROS
+          - FURTO DE VEÍCULO
+          - FURTO DE CARGA
+
+  - id: outros
+    rotulo: Outros (drogas, armas, trânsito)
+    prioridade: 999
+    padrao: true
+    regras: []
