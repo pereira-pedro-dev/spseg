@@ -89,3 +89,74 @@ class BairroSummary:
     generated_at: datetime
     nivel: str = "distrito"
     denominator_source: str | None = None
+
+
+@dataclass(frozen=True)
+class StreetCategory:
+    """Categoria elegível ao grão rua; sem taxa e sem tendência."""
+
+    id: str
+    label: str
+    occurrences: int
+    incidents: int
+    share_of_street: float | None = None
+    share_of_district: float | None = None
+    district_visible_occurrences: int = 0
+    district_visible_incidents: int = 0
+    top_natures: tuple[tuple[str, int], ...] = ()
+
+
+@dataclass(frozen=True)
+class DistrictCategoryContext:
+    """Categoria no distrito inteiro, incluindo o que não tem rua atribuível."""
+
+    id: str
+    label: str
+    occurrences: int
+    incidents: int
+    visible_occurrences: int
+    visible_incidents: int
+    coverage: float | None = None
+    not_visible_occurrences: int = 0
+
+
+@dataclass(frozen=True)
+class StreetQuality:
+    rows_in_street: int = 0
+    rows_in_district: int = 0
+    rows_visible: int = 0
+    suppressed_logradouro: int = 0
+    missing_logradouro: int = 0
+    not_visible_occurrences: int = 0
+    district_method_counts: dict[str, int] = field(default_factory=dict)
+    district_resolution_rate: float | None = None
+    notes: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class StreetSummary:
+    rua: str
+    rua_raw: str
+    rua_key: str
+    rua_tipo: str | None
+    distrito: str
+    distrito_id: str | None
+    municipio: str
+    period: Period
+    total_occurrences: int
+    total_incidents: int
+    share_of_district: float | None
+    district_total_occurrences: int
+    district_total_incidents: int
+    district_visible_occurrences: int
+    district_visible_incidents: int
+    district_coverage: float | None
+    district_not_visible_by_category: dict[str, int]
+    categories: tuple[StreetCategory, ...]
+    district_categories: tuple[DistrictCategoryContext, ...]
+    top_natures: tuple[tuple[str, int], ...]
+    top_tipo_local: tuple[tuple[str, int], ...]
+    quality: StreetQuality
+    taxonomy_provisional: bool
+    generated_at: datetime
+    nivel: str = "rua"

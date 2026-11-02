@@ -10,12 +10,14 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
+from spseg.analysis.street_summary import NoStreetData, build_street_summary
 from spseg.analysis.summary import BairroNotFound, CacheMissing, build_summary
 from spseg.config import DEFAULT_MUNICIPIO, Settings, get_settings
 from spseg.data.cache import cached_years, latest_year, read_facts
 from spseg.data.excel import read_workbook
 from spseg.data.reference import load_reference
 from spseg.geo.resolve import BairroResolver, registry_from_entries_frame
+from spseg.geo.street import StreetAmbiguous, StreetNotFound, display_street
 from spseg.geo.text import normalize_key
 from spseg.ingest import find_workbooks
 from spseg.ingest import ingest as run_ingest
@@ -25,14 +27,18 @@ from spseg.render.console import (
     fmt_int,
     render_check,
     render_distrito_list,
+    render_street_summary,
     render_summary,
 )
-from spseg.render.export import summary_to_json
+from spseg.render.export import street_summary_to_json, summary_to_json
 
 app = typer.Typer(
     no_args_is_help=True,
     add_completion=False,
-    help="Resumo de segurança por distrito usando os dados públicos da SSP-SP.",
+    help=(
+        "Resumo de segurança por distrito e por rua dentro do distrito "
+        "usando os dados públicos da SSP-SP."
+    ),
 )
 
 RESOLVED_METHODS = {"exact", "alias", "fuzzy", "geo"}
@@ -250,6 +256,90 @@ def _show_summary(
         typer.echo(summary_to_json(summary))
     else:
         render_summary(summary)
+
+
+def _show_street(
+    rua: str,
+    *,
+    distrito: str,
+    municipio: str,
+    anos: int | None,
+    desde: str | None,
+    ate: str | None,
+    json_output: bool,
+) -> None:
+    settings = _settings()
+    try:
+        summary = build_street_summary(
+            settings,
+            rua,
+            distrito,
+            municipio=municipio,
+            since=_parse_date(desde, "--desde"),
+            until=_parse_date(ate, "--ate"),
+            years=anos,
+        )
+    except CacheMissing as exc:
+        _fail(str(exc), code=3)
+    except BairroNotFound as exc:
+        CONSOLE.print(f"[red]Distrito não encontrado:[/red] {exc.query}")
+        if exc.suggestions:
+            CONSOLE.print("Talvez você quis dizer:")
+            for name, score in exc.suggestions:
+                CONSOLE.print(f"  • {name} ({score:.0f}%)")
+        raise typer.Exit(code=2) from exc
+    except StreetNotFound as exc:
+        CONSOLE.print(f"[red]Rua não encontrada em {exc.distrito} no período:[/red] {exc.query}")
+        if exc.suggestions:
+            CONSOLE.print("Talvez você quis dizer:")
+            for name, score in exc.suggestions:
+                CONSOLE.print(f"  • {name} ({score:.0f}%)")
+        raise typer.Exit(code=2) from exc
+    except StreetAmbiguous as exc:
+        CONSOLE.print(f"[red]Mais de uma rua corresponde a {exc.query} em {exc.distrito}:[/red]")
+        for key in exc.candidates:
+            count = exc.counts.get(key)
+            suffix = f" ({fmt_int(count)} registros)" if count is not None else ""
+            CONSOLE.print(f"  • {display_street(key)}{suffix}")
+        example = display_street(exc.candidates[0]) if exc.candidates else "o tipo"
+        CONSOLE.print(f'Repita informando o tipo (ex.: "{example}").')
+        raise typer.Exit(code=2) from exc
+    except NoStreetData as exc:
+        CONSOLE.print(f"[red]Sem dados por rua:[/red] {exc}")
+        raise typer.Exit(code=2) from exc
+    except (ValueError, FileNotFoundError) as exc:
+        _fail(str(exc))
+
+    if json_output:
+        typer.echo(street_summary_to_json(summary))
+    else:
+        render_street_summary(summary)
+
+
+@app.command()
+def rua(
+    nome: str = typer.Argument(..., help="Nome da rua (ex.: Mourato Coelho)."),
+    distrito: str = typer.Option(..., "--distrito", help="Distrito onde a rua será buscada."),
+    municipio: str = typer.Option(DEFAULT_MUNICIPIO, "--municipio"),
+    anos: int | None = typer.Option(
+        None,
+        "--anos",
+        help="Janela móvel em anos (ex.: 3). Padrão: toda a cobertura dos arquivos.",
+    ),
+    desde: str | None = typer.Option(None, "--desde", help="Data inicial (AAAA-MM-DD)."),
+    ate: str | None = typer.Option(None, "--ate", help="Data final (AAAA-MM-DD)."),
+    json_output: bool = typer.Option(False, "--json", help="Saída JSON."),
+) -> None:
+    """Resumo de segurança de uma rua dentro de um distrito."""
+    _show_street(
+        nome,
+        distrito=distrito,
+        municipio=municipio,
+        anos=anos,
+        desde=desde,
+        ate=ate,
+        json_output=json_output,
+    )
 
 
 @app.command()

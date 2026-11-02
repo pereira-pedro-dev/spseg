@@ -58,6 +58,71 @@ def make_facts(
     return pd.DataFrame(rows)
 
 
+def make_street_facts() -> pd.DataFrame:
+    """Cache sintético para o grão `(rua, distrito)`.
+
+    18 registros no distrito de Pinheiros:
+    - 8 em RUA MOURATO COELHO (3 violentos, 5 não violentos);
+    - 5 em AVENIDA CAPRI (1 violento, 4 não violentos; 100% Terminal/Estação);
+    - 2 com logradouro suprimido;
+    - 1 sem logradouro;
+    - 1 de invasão de residência e 1 de violência sexual, com logradouro válido.
+    Visíveis para rua: 13. Suprimidos: 2. Ausentes: 1. Categorias excluídas: 2.
+    """
+    from spseg.config import SUPPRESSED_MARKER
+
+    rows = [
+        # (logradouro, bo, natureza, tipo_local, crime_category)
+        ("RUA MOURATO COELHO", "BO001", "ROUBO - OUTROS", "Via Pública", "crime_violento"),
+        ("RUA MOURATO COELHO", "BO002", "ROUBO - OUTROS", "Via Pública", "crime_violento"),
+        ("RUA MOURATO COELHO", "BO003", "HOMICÍDIO DOLOSO", "Via Pública", "crime_violento"),
+        ("RUA MOURATO COELHO", "BO004", "FURTO - OUTROS", "Residência", "crime_nao_violento"),
+        ("RUA MOURATO COELHO", "BO004", "FURTO - OUTROS", "Residência", "crime_nao_violento"),
+        ("RUA MOURATO COELHO", "BO005", "FURTO - OUTROS", "Via Pública", "crime_nao_violento"),
+        ("RUA MOURATO COELHO", "BO006", "FURTO - OUTROS", "Via Pública", "crime_nao_violento"),
+        ("RUA MOURATO COELHO", "BO007", "FURTO - OUTROS", "Via Pública", "crime_nao_violento"),
+        ("AVENIDA CAPRI", "BO101", "ROUBO - OUTROS", "Terminal/Estação", "crime_violento"),
+        ("AVENIDA CAPRI", "BO102", "FURTO - OUTROS", "Terminal/Estação", "crime_nao_violento"),
+        ("AVENIDA CAPRI", "BO103", "FURTO - OUTROS", "Terminal/Estação", "crime_nao_violento"),
+        ("AVENIDA CAPRI", "BO104", "FURTO - OUTROS", "Terminal/Estação", "crime_nao_violento"),
+        ("AVENIDA CAPRI", "BO105", "FURTO - OUTROS", "Terminal/Estação", "crime_nao_violento"),
+        (SUPPRESSED_MARKER, "BO201", "ROUBO - OUTROS", "Via Pública", "crime_violento"),
+        (SUPPRESSED_MARKER, "BO202", "PORTE DE ENTORPECENTES", "Via Pública", "outros"),
+        ("", "BO301", "ROUBO - OUTROS", "Via Pública", "crime_violento"),
+        ("RUA DAS FLORES", "BO401", "INVASAO DE RESIDENCIA", "Residência", "invasao_residencia"),
+        ("RUA DAS FLORES", "BO501", "ESTUPRO", "Residência", "violencia_sexual"),
+    ]
+    date = pd.Timestamp("2024-01-05")
+    records = []
+    for logradouro, bo, natureza, tipo_local, category in rows:
+        records.append(
+            {
+                "num_bo": bo[2:],
+                "ano_bo": 2024,
+                "bo_key": f"2024/{bo}",
+                "data_registro": date,
+                "data_ocorrencia": date,
+                "bairro_raw": "Pinheiros",
+                "bairro_nome": "Pinheiros",
+                "bairro_id": "pinheiros",
+                "bairro_method": "exact",
+                "bairro_confidence": 1.0,
+                "distrito_id": "pinheiros",
+                "municipio": "São Paulo",
+                "municipio_key": "SAO PAULO",
+                "logradouro": logradouro,
+                "natureza": natureza,
+                "tipo_local": tipo_local,
+                "conduta": "Outros",
+                "latitude": -23.56,
+                "longitude": -46.70,
+                "crime_category": category,
+                "source_sheet": "TESTE",
+            }
+        )
+    return pd.DataFrame(records)
+
+
 def write_facts(settings, frame: pd.DataFrame, year: int) -> None:
     write_parquet(frame, facts_cache_path(settings, year))
 

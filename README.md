@@ -1,8 +1,8 @@
 # spseg — segurança por distrito em São Paulo
 
-CLI para consultar um resumo de segurança por **distrito** a partir dos dados
-públicos da Secretaria de Segurança Pública de São Paulo
-(`SPDadosCriminais_YYYY.xlsx`).
+CLI para consultar um resumo de segurança por **distrito** e por **rua dentro do
+distrito** a partir dos dados públicos da Secretaria da Segurança Pública de São
+Paulo (`SPDadosCriminais_YYYY.xlsx`).
 
 O distrito é a unidade canônica porque é o único recorte da capital com polígono
 oficial (GeoSampa) e denominador oficial (IBGE Censo 2022). Nomes de bairro
@@ -96,6 +96,10 @@ uv run spseg bairro pinheiros --anos 3
 # Mesma consulta em JSON
 uv run spseg bairro pinheiros --json
 
+# Uma rua dentro de um distrito
+uv run spseg rua "Mourato Coelho" --distrito Pinheiros
+uv run spseg rua "Mourato Coelho" --distrito Pinheiros --json
+
 # Lista/busca distritos presentes no cache
 uv run spseg list --search pin
 
@@ -115,12 +119,14 @@ uv run spseg doctor
 | `spseg list` | Distritos do cache, contagem e taxa de resolução. |
 | `spseg bairro <nome>` | Resumo por categoria; bairro é tratado como alias. |
 | `spseg distrito <nome>` | Alias de `spseg bairro`. |
+| `spseg rua <rua> --distrito <nome>` | Resumo de uma rua dentro do distrito. |
 | `spseg doctor` | Estado do cache e dos arquivos de referência. |
 
-### Opções de `bairro` / `distrito`
+### Opções de `bairro` / `distrito` / `rua`
 
 | Opção | Efeito |
 |---|---|
+| `--distrito` | Obrigatório em `rua`: distrito onde a rua será procurada. |
 | `--anos N` | Janela móvel de N anos terminando no fim da cobertura. |
 | `--desde AAAA-MM-DD` | Início explícito. |
 | `--ate AAAA-MM-DD` | Fim explícito. |
@@ -135,7 +141,8 @@ ocorrência antigas não esticam a janela para trás.
 
 - `0` — sucesso
 - `1` — erro de entrada (arquivo, data, opção)
-- `2` — distrito não encontrado (com sugestões)
+- `2` — distrito não encontrado, rua não encontrada, rua ambígua ou distrito
+  sem rua atribuível (com sugestões)
 - `3` — cache ausente (`rode spseg ingest`)
 
 ## Como ler a saída
@@ -152,6 +159,65 @@ ocorrência antigas não esticam a janela para trás.
 - Todo resumo traz as ressalvas de cobertura, resolução de distrito e taxonomia
   provisória. Quando a resolução da cidade fica abaixo de 98%, a saída avisa que
   as contagens do distrito são **piso**, não o total real.
+
+## Análise por rua dentro do distrito
+
+`spseg rua <rua> --distrito <distrito>` responde a uma pergunta mais fina:
+**quanto do crime do distrito está naquela rua e como a rua se compõe**.
+
+- O grão é `(rua, distrito)`. A rua é resolvida **dentro** do distrito; nomes
+  iguais em distritos diferentes são séries diferentes.
+- A consulta aceita nome com ou sem tipo (`Mourato Coelho`, `Rua Mourato
+  Coelho`, `R. Mourato Coelho`). O tipo faz parte da identidade: `Rua Paulista`
+  não casa com `Avenida Paulista`. Se a consulta sem tipo for ambígua, a saída
+  lista os candidatos e pede o tipo.
+- Resolução: nome exato → nome exato sem tipo → aproximado (`>= 92` de
+  similaridade e margem de 4). Não há alias de rua.
+- **Não há taxa per capita nem por domicílio** no grão rua. O denominador
+  confiável é do distrito, não da rua. No lugar, a saída mostra:
+  - `% do distrito` — participação da rua no total da categoria no distrito
+    **com rua atribuível** (ex.: 525 de 8.126 crimes violentos visíveis);
+  - `% da rua` — composição interna da própria rua.
+- O painel de contexto mostra o distrito inteiro, incluindo as categorias que
+  **nunca** aparecem no grão rua.
+- `% do distrito` é um **piso**: registros sem logradouro, suprimidos ou de
+  categorias não atribuíveis ficam fora do denominador. A cobertura aparece no
+  painel e no JSON.
+
+As fórmulas, sempre sobre ocorrências:
+
+```
+share_of_district(c) = ocorrências da categoria c na rua
+                       / ocorrências da categoria c no distrito com rua
+share_of_street(c)   = ocorrências da categoria c na rua
+                       / ocorrências da rua
+coverage             = registros do distrito com rua
+                       / registros do distrito
+```
+
+Exemplo real (cache de 2024–2026, período completo): em **Mourato Coelho /
+Pinheiros**, 1.820 ocorrências, sendo 525 crimes violentos — **6,5%** dos 8.126
+crimes violentos do distrito com rua atribuível e **28,8%** das ocorrências da
+própria rua. Em **Rua Capri / Pinheiros**, 2.019 ocorrências e 900 em
+`Terminal/Estação` (44,6%); a saída avisa que a contagem reflete o equipamento,
+não uma rua residencial.
+
+O nome da rua não é global: `Avenida Brigadeiro Faria Lima` em Pinheiros e em
+Itaim Bibi são duas séries distintas, com contagens diferentes. Nesta versão não
+há sugestão de ruas vizinhas.
+
+### Por que invasão de residência e violência sexual não aparecem na rua
+
+Nesses registros a SSP suprime logradouro e coordenada em 100% dos casos. Eles
+não podem ser atribuídos a uma rua sem inventar dado. O `spseg rua` mostra
+essas categorias apenas no **contexto do distrito**, com `Com rua = 0`.
+
+### O que a saída não mede
+
+O grão rua mede **crime registrado em espaço público no logradouro**, não o
+risco do imóvel. Uma rua com muitos furtos pode refletir comércio, terminal ou
+grande circulação. A saída avisa quando um tipo de local que não é via pública
+concentra 25% ou mais dos registros.
 
 ## Arquitetura
 
@@ -248,6 +314,13 @@ diretório de dados.
   as contagens por distrito são piso.
 - Registros com local suprimido pelo SSP (`VEDAÇÃO DA DIVULGAÇÃO`) não entram em
   nenhum distrito.
+- No grão rua, registros sem `logradouro`, com logradouro suprimido ou de
+  `invasao_residencia`/`violencia_sexual` não são atribuídos a nenhuma rua; por
+  isso os percentuais são piso. Duas ruas com o mesmo nome e o mesmo tipo no
+  mesmo distrito continuam indistinguíveis; o `rua_raw` e a composição ajudam a
+  perceber.
+- `spseg rua` não traz número de porta, CEP, tendência nem ranking. Não há alias
+  de rua nesta versão.
 - Sem downloader automático das planilhas.
 - Sem score consolidado nem `compare` (próxima etapa).
 
@@ -260,3 +333,6 @@ diretório de dados.
 > correspondente, sempre rotulada como tal. Taxa por bairro não será estimada
 > nem fabricada. Requer: alias bairro→distrito com suporte mínimo, campo de
 > nível na saída e um comando/flag explícito de granularidade.
+>
+> O fluxo desta entrega vai direto de distrito para `(rua, distrito)`; bairro
+> continua apenas como **alias de busca** do distrito.
