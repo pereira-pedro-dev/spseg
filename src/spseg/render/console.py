@@ -38,12 +38,21 @@ def fmt_pct(value: float | None) -> str:
     return fmt_rate(value, 1) + "%"
 
 
+def _base_label(summary: BairroSummary) -> str:
+    if not summary.denominator_level:
+        return "sem denominador (apenas contagens)"
+    source = (summary.denominator_source or "").split(" (")[0].strip()
+    return f"{summary.denominator_level} ({source})" if source else summary.denominator_level
+
+
 def render_summary(summary: BairroSummary, console: Console | None = None) -> None:
     console = console or CONSOLE
+    unit_label = "Distrito" if summary.nivel == "distrito" else summary.nivel.capitalize()
     header = (
-        f"[bold]{escape(summary.bairro_nome)}[/bold] "
+        f"[bold]{unit_label}:[/bold] {escape(summary.bairro_nome)} "
         f"({escape(summary.municipio)})\n"
         f"Período: {summary.period.label}\n"
+        f"Base: {escape(_base_label(summary))}\n"
         f"População: {fmt_int(summary.population)} | "
         f"Domicílios: {fmt_int(summary.households)}"
     )
@@ -110,8 +119,8 @@ def render_summary(summary: BairroSummary, console: Console | None = None) -> No
 
     quality = summary.quality
     quality_lines = [
-        f"Registros no bairro: {fmt_int(quality.rows_in_bairro)}",
-        "Bairro resolvido: "
+        f"Registros no distrito: {fmt_int(quality.rows_in_bairro)}",
+        "Resolução da cidade no período: "
         + fmt_pct(None if quality.resolution_rate is None else quality.resolution_rate * 100),
     ]
     if quality.method_counts:
@@ -140,15 +149,15 @@ def render_check(sections: list[CheckSection], console: Console | None = None) -
             console.print(line)
 
 
-def render_bairro_list(
+def render_distrito_list(
     rows: list[tuple[str, str, int, float | None]],
     *,
     console: Console | None = None,
-    title: str = "Bairros disponíveis",
+    title: str = "Distritos disponíveis",
 ) -> None:
     console = console or CONSOLE
     table = Table(title=title, show_header=True, header_style="bold")
-    table.add_column("Bairro", no_wrap=True, max_width=24, overflow="ellipsis")
+    table.add_column("Distrito", no_wrap=True, max_width=24, overflow="ellipsis")
     table.add_column("ID", no_wrap=True, max_width=24, overflow="ellipsis")
     table.add_column("Registros", justify="right", no_wrap=True)
     table.add_column("Resolvido", justify="right", no_wrap=True)

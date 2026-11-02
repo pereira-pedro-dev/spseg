@@ -93,13 +93,11 @@ def build_summary(
         coverage_end=facts["data_registro"].max() if "data_registro" in facts.columns else None,
     )
     dates = pd.to_datetime(facts["data_ocorrencia"], errors="coerce")
-    in_bairro = facts["bairro_id"] == entry.bairro_id
-    in_period = (
-        in_bairro
-        & (dates >= pd.Timestamp(period.start))
-        & (dates < pd.Timestamp(period.end) + pd.Timedelta(days=1))
+    in_period = (dates >= pd.Timestamp(period.start)) & (
+        dates < pd.Timestamp(period.end) + pd.Timedelta(days=1)
     )
-    frame = facts[in_period]
+    frame = facts[in_period & (facts["bairro_id"] == entry.bairro_id)]
+    city_frame = facts[in_period]
 
     population = reference.population_for(entry)
     households = reference.households_for(entry)
@@ -119,9 +117,11 @@ def build_summary(
         str(method): int(count) for method, count in frame["bairro_method"].value_counts().items()
     }
     rows = len(frame)
-    resolved = sum(method_counts.get(method, 0) for method in RESOLVED_METHODS)
-    resolution_rate = resolved / rows if rows else None
-    suppressed_city = int((facts["bairro_method"] == "suppressed").sum())
+    city_method_counts = city_frame["bairro_method"].value_counts()
+    city_rows = len(city_frame)
+    resolved = sum(int(city_method_counts.get(method, 0)) for method in RESOLVED_METHODS)
+    resolution_rate = resolved / city_rows if city_rows else None
+    suppressed_city = int(city_method_counts.get("suppressed", 0))
 
     notes: list[str] = []
     notes.extend(period.notes)
@@ -152,15 +152,18 @@ def build_summary(
         )
     if suppressed_city:
         notes.append(
-            f"{suppressed_city:,} registros da base têm o local suprimido pelo SSP "
-            "(não entram em nenhum bairro).".replace(",", ".")
+            f"{suppressed_city:,} registros da cidade no período têm o local suprimido pelo SSP "
+            "(não entram em nenhum distrito).".replace(",", ".")
         )
-    if rows and resolution_rate is not None and resolution_rate < 1:
-        unresolved = method_counts.get("unresolved", 0)
-        notes.append(
-            f"{unresolved:,} registros do bairro não tiveram local resolvido "
-            f"({resolution_rate:.0%} resolvidos).".replace(",", ".")
-        )
+    if resolution_rate is not None and resolution_rate < 1:
+        unresolved = int(city_method_counts.get("unresolved", 0))
+        note = (
+            f"{unresolved:,} registros da cidade no período não tiveram local resolvido "
+            f"({resolution_rate:.1%} resolvidos)."
+        ).replace(",", ".")
+        if resolution_rate < 0.98:
+            note += " As contagens do distrito são piso, não o total real."
+        notes.append(note)
     if rows and "tipo_local" in frame.columns:
         missing_tipo = float(frame["tipo_local"].isna().mean())
         if missing_tipo >= 0.25:
@@ -175,6 +178,7 @@ def build_summary(
         )
 
     denominator_level = population.level or households.level
+    denominator_source = population.source or households.source
     quality = QualityFlags(
         rows_in_bairro=rows,
         method_counts=method_counts,
@@ -198,4 +202,6 @@ def build_summary(
         quality=quality,
         taxonomy_provisional=taxonomy.provisional,
         generated_at=datetime.now(),
+        nivel="distrito",
+        denominator_source=denominator_source,
     )

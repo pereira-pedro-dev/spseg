@@ -28,6 +28,7 @@ def summary_to_dict(summary: BairroSummary) -> dict:
     return {
         "bairro": summary.bairro_nome,
         "bairro_id": summary.bairro_id,
+        "nivel": summary.nivel,
         "municipio": summary.municipio,
         "period": {
             "start": summary.period.start.isoformat(),
@@ -39,6 +40,7 @@ def summary_to_dict(summary: BairroSummary) -> dict:
         "population": summary.population,
         "households": summary.households,
         "denominator_level": summary.denominator_level,
+        "denominator_source": summary.denominator_source,
         "totals": {
             "occurrences": summary.total_occurrences,
             "incidents": summary.total_incidents,

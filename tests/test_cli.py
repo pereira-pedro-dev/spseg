@@ -7,7 +7,7 @@ import json
 from typer.testing import CliRunner
 
 from spseg.cli import app
-from tests.helpers import make_facts, write_facts
+from tests.helpers import make_facts, write_facts, write_population
 
 runner = CliRunner()
 
@@ -19,7 +19,7 @@ def _seed(settings) -> None:
 def test_help_lists_commands():
     result = runner.invoke(app, ["--help"])
     assert result.exit_code == 0
-    for command in ("ingest", "check", "list", "bairro", "doctor"):
+    for command in ("ingest", "check", "list", "bairro", "distrito", "doctor"):
         assert command in result.output
 
 
@@ -34,12 +34,14 @@ def test_doctor_with_cache(settings):
     result = runner.invoke(app, ["doctor"])
     assert result.exit_code == 0
     assert "2024" in result.output
+    assert "distritos=" in result.output
 
 
 def test_list_bairros(settings):
     _seed(settings)
     result = runner.invoke(app, ["list"])
     assert result.exit_code == 0
+    assert "Distritos disponíveis" in result.output
 
 
 def test_list_search_does_not_fail(settings):
@@ -66,9 +68,35 @@ def test_bairro_json_output(settings):
     payload = json.loads(result.output)
     assert payload["bairro"] == "Pinheiros"
     assert payload["bairro_id"] == "pinheiros"
+    assert payload["nivel"] == "distrito"
     assert payload["totals"]["occurrences"] == 60
     assert payload["taxonomy_provisional"] is True
     assert payload["period"]["start"] == "2024-02-01"
+
+
+def test_bairro_json_includes_denominators(settings):
+    _seed(settings)
+    write_population(settings)
+    result = runner.invoke(app, ["bairro", "Pinheiros", "--json"])
+    assert result.exit_code == 0
+    payload = json.loads(result.output)
+    assert payload["population"] == 100_000
+    assert payload["households"] == 50_000
+    assert payload["denominator_level"] == "bairro"
+    assert payload["denominator_source"] == "Censo teste"
+
+
+def test_distrito_command_matches_bairro(settings):
+    _seed(settings)
+    via_bairro = runner.invoke(app, ["bairro", "Pinheiros", "--json"])
+    via_distrito = runner.invoke(app, ["distrito", "Pinheiros", "--json"])
+    assert via_bairro.exit_code == 0
+    assert via_distrito.exit_code == 0
+    left = json.loads(via_bairro.output)
+    right = json.loads(via_distrito.output)
+    left.pop("generated_at")
+    right.pop("generated_at")
+    assert left == right
 
 
 def test_bairro_text_output(settings):

@@ -80,7 +80,7 @@ def ingest(
     if manifest.get("schema_version") != 1:
         manifest["schema_version"] = 1
     reference = load_reference(settings)
-    log(f"Referência: {len(reference.entries)} bairros | versão {reference.version}")
+    log(f"Referência: {len(reference.entries)} distritos | versão {reference.version}")
     for issue in reference.status.issues:
         log(f"  aviso: {issue}")
 

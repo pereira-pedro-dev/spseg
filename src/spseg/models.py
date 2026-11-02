@@ -87,3 +87,5 @@ class BairroSummary:
     quality: QualityFlags
     taxonomy_provisional: bool
     generated_at: datetime
+    nivel: str = "distrito"
+    denominator_source: str | None = None

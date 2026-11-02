@@ -69,6 +69,7 @@ def write_population(
     bairro_nome: str = "Pinheiros",
     populacao: int = 100_000,
     domicilios: int = 50_000,
+    nivel: str = "bairro",
 ) -> None:
     pd.DataFrame(
         [
@@ -78,7 +79,7 @@ def write_population(
                 "populacao": populacao,
                 "ano": 2022,
                 "fonte": "Censo teste",
-                "nivel": "bairro",
+                "nivel": nivel,
             }
         ]
     ).to_csv(settings.reference_dir / "populacao_bairro.csv", index=False)
@@ -90,7 +91,7 @@ def write_population(
                 "domicilios": domicilios,
                 "ano": 2022,
                 "fonte": "Censo teste",
-                "nivel": "bairro",
+                "nivel": nivel,
             }
         ]
     ).to_csv(settings.reference_dir / "domicilios_bairro.csv", index=False)

@@ -165,8 +165,8 @@ def _parse_int(value: object) -> int | None:
     text = str(value or "").strip().replace("\xa0", "").replace(" ", "")
     if not text or text in {"-", "..", "..."}:
         return None
-    if "," in text:
-        text = text.replace(".", "").replace(",", ".")
+    # Nos agregados do IBGE o ponto é separador de milhar e a vírgula é decimal.
+    text = text.replace(".", "").replace(",", ".")
     try:
         return int(float(text))
     except ValueError:

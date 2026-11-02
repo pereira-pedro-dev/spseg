@@ -29,6 +29,7 @@ def test_summary_without_denominators(settings):
 
     assert summary.bairro_id == "pinheiros"
     assert summary.bairro_nome == "Pinheiros"
+    assert summary.nivel == "distrito"
     assert summary.total_occurrences == 60
     assert summary.total_incidents == 60
     assert summary.population is None
@@ -52,6 +53,7 @@ def test_summary_with_denominators_computes_rates(settings):
     assert summary.population == 100_000
     assert summary.households == 50_000
     assert summary.denominator_level == "bairro"
+    assert summary.denominator_source == "Censo teste"
     assert round(sum(c.rate_per_100k for c in summary.categories), 6) == 60.0
     assert round(sum(c.rate_per_10k_households for c in summary.categories), 6) == 12.0
     assert not any("populacao_bairro.csv" in note for note in summary.quality.notes)
@@ -94,3 +96,31 @@ def test_summary_notes_missing_tipo_local(settings):
     summary = build_summary(settings, "Pinheiros", today=date(2026, 11, 1))
 
     assert any("tipo de local ausente" in note for note in summary.quality.notes)
+
+
+def test_summary_uses_distrito_level_denominator(settings):
+    frame = make_facts(bairro_id="355030862")
+    frame["distrito_id"] = "355030862"
+    write_facts(settings, frame, 2024)
+    write_population(settings, bairro_id="355030862", nivel="distrito")
+
+    summary = build_summary(settings, "Pinheiros", today=date(2026, 11, 1))
+
+    assert summary.bairro_id == "355030862"
+    assert summary.denominator_level == "distrito"
+    assert summary.denominator_source == "Censo teste"
+    assert summary.population == 100_000
+    assert all(category.rate_per_100k is not None for category in summary.categories)
+
+
+def test_summary_flags_low_city_resolution_as_floor(settings):
+    frame = make_facts()
+    frame.loc[frame.index[:10], "bairro_method"] = "unresolved"
+    frame.loc[frame.index[:10], "bairro_id"] = pd.NA
+    write_facts(settings, frame, 2024)
+
+    summary = build_summary(settings, "Pinheiros", today=date(2026, 11, 1))
+
+    assert summary.quality.resolution_rate is not None
+    assert summary.quality.resolution_rate < 0.98
+    assert any("piso" in note for note in summary.quality.notes)

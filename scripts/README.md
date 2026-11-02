@@ -20,13 +20,25 @@ Scripts auxiliares, executáveis com `uv run python scripts/<nome>.py`.
   ```
 
   Os arquivos crus ficam em `data/reference/downloads/` (ignorado pelo git).
-  `--simplify 0.00005` reduz ~3,7 MB para ~1 MB, ao custo de precisão na divisa.
+  `--simplify 0.00005` reduz ~3,1 MB para ~1 MB, ao custo de precisão na divisa.
 
-## Ainda não implementados
+- **`build_aliases.py`** — lê o cache de fatos, considera apenas linhas
+  `bairro_method=geo`, agrupa `bairro_raw` normalizado e grava
+  `data/reference/bairro_aliases.csv` com `n` e `share` em `fonte`.
 
-- **`build_aliases.py`** — varre as grafias de `BAIRRO` resolvidas por
-  coordenada, agrupa por distrito modal e grava aliases em
-  `data/reference/bairro_aliases.csv` (`n >= 5`, `share >= 0.85`).
+  ```bash
+  uv run python scripts/build_aliases.py --dry-run   # audita sem gravar
+  uv run python scripts/build_aliases.py             # grava
+  uv run python scripts/build_aliases.py --min-n 10 --min-share 0.9
+  ```
+
+  Aliases curados (fonte diferente de `derivado:geo`) são preservados. O padrão
+  `n >= 5` e `share >= 0.85` deixa de fora nomes ambíguos, que ficam
+  `unresolved` em vez de serem atribuídos ao distrito modal. Depois de gravar,
+  rode `uv run spseg ingest`.
+
+## Ainda não implementado
+
 - **`download_ssp.py`** — baixa as planilhas da SSP e coloca em `data/raw/`
   (fora da base atual; hoje o download é manual).
 

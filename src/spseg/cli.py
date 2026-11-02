@@ -23,8 +23,8 @@ from spseg.quality.checks import run_all
 from spseg.render.console import (
     CONSOLE,
     fmt_int,
-    render_bairro_list,
     render_check,
+    render_distrito_list,
     render_summary,
 )
 from spseg.render.export import summary_to_json
@@ -32,7 +32,7 @@ from spseg.render.export import summary_to_json
 app = typer.Typer(
     no_args_is_help=True,
     add_completion=False,
-    help="Resumo de segurança por bairro usando os dados públicos da SSP-SP.",
+    help="Resumo de segurança por distrito usando os dados públicos da SSP-SP.",
 )
 
 RESOLVED_METHODS = {"exact", "alias", "fuzzy", "geo"}
@@ -161,7 +161,7 @@ def list_bairros(
     search: str | None = typer.Option(None, "--search", help="Filtra por nome."),
     ano: list[int] = typer.Option([], "--ano", help="Restringe a estes anos (repetível)."),
 ) -> None:
-    """Lista os bairros presentes no cache e a taxa de resolução."""
+    """Lista os distritos presentes no cache e a taxa de resolução."""
     settings = _settings()
     if not cached_years(settings, "facts"):
         _fail("Cache ausente. Rode `uv run spseg ingest` primeiro.", code=3)
@@ -172,7 +172,7 @@ def list_bairros(
 
     entries = registry_from_entries_frame(facts)
     if not entries:
-        _fail("Não há bairros resolvidos no cache.")
+        _fail("Não há distritos resolvidos no cache.")
     resolver = BairroResolver(entries)
 
     counts = facts.groupby("bairro_id", dropna=True).size()
@@ -206,7 +206,7 @@ def list_bairros(
         rows = filtered
 
     rows.sort(key=lambda row: row[0])
-    render_bairro_list(rows, title=f"Bairros disponíveis ({len(rows)})")
+    render_distrito_list(rows, title=f"Distritos disponíveis ({len(rows)})")
     reference = load_reference(settings)
     if not reference.status.has_rates:
         CONSOLE.print(
@@ -215,20 +215,15 @@ def list_bairros(
         )
 
 
-@app.command()
-def bairro(
-    nome: str = typer.Argument(..., help="Nome do bairro (ex.: Pinheiros)."),
-    municipio: str = typer.Option(DEFAULT_MUNICIPIO, "--municipio"),
-    anos: int | None = typer.Option(
-        None,
-        "--anos",
-        help="Janela móvel em anos (ex.: 3). Padrão: toda a cobertura dos arquivos.",
-    ),
-    desde: str | None = typer.Option(None, "--desde", help="Data inicial (AAAA-MM-DD)."),
-    ate: str | None = typer.Option(None, "--ate", help="Data final (AAAA-MM-DD)."),
-    json_output: bool = typer.Option(False, "--json", help="Saída JSON."),
+def _show_summary(
+    nome: str,
+    *,
+    municipio: str,
+    anos: int | None,
+    desde: str | None,
+    ate: str | None,
+    json_output: bool,
 ) -> None:
-    """Resumo de segurança de um bairro."""
     settings = _settings()
     try:
         summary = build_summary(
@@ -242,7 +237,7 @@ def bairro(
     except CacheMissing as exc:
         _fail(str(exc), code=3)
     except BairroNotFound as exc:
-        CONSOLE.print(f"[red]Bairro não encontrado:[/red] {exc.query}")
+        CONSOLE.print(f"[red]Distrito não encontrado:[/red] {exc.query}")
         if exc.suggestions:
             CONSOLE.print("Talvez você quis dizer:")
             for name, score in exc.suggestions:
@@ -255,6 +250,54 @@ def bairro(
         typer.echo(summary_to_json(summary))
     else:
         render_summary(summary)
+
+
+@app.command()
+def bairro(
+    nome: str = typer.Argument(..., help="Nome do distrito ou bairro (ex.: Pinheiros)."),
+    municipio: str = typer.Option(DEFAULT_MUNICIPIO, "--municipio"),
+    anos: int | None = typer.Option(
+        None,
+        "--anos",
+        help="Janela móvel em anos (ex.: 3). Padrão: toda a cobertura dos arquivos.",
+    ),
+    desde: str | None = typer.Option(None, "--desde", help="Data inicial (AAAA-MM-DD)."),
+    ate: str | None = typer.Option(None, "--ate", help="Data final (AAAA-MM-DD)."),
+    json_output: bool = typer.Option(False, "--json", help="Saída JSON."),
+) -> None:
+    """Resumo de segurança de um distrito (aceita bairro como alias)."""
+    _show_summary(
+        nome,
+        municipio=municipio,
+        anos=anos,
+        desde=desde,
+        ate=ate,
+        json_output=json_output,
+    )
+
+
+@app.command()
+def distrito(
+    nome: str = typer.Argument(..., help="Nome do distrito (ex.: Pinheiros)."),
+    municipio: str = typer.Option(DEFAULT_MUNICIPIO, "--municipio"),
+    anos: int | None = typer.Option(
+        None,
+        "--anos",
+        help="Janela móvel em anos (ex.: 3). Padrão: toda a cobertura dos arquivos.",
+    ),
+    desde: str | None = typer.Option(None, "--desde", help="Data inicial (AAAA-MM-DD)."),
+    ate: str | None = typer.Option(None, "--ate", help="Data final (AAAA-MM-DD)."),
+    json_output: bool = typer.Option(False, "--json", help="Saída JSON."),
+) -> None:
+    """Alias de `spseg bairro`: resumo de segurança de um distrito."""
+    _show_summary(
+        nome,
+        municipio=municipio,
+        anos=anos,
+        desde=desde,
+        ate=ate,
+        json_output=json_output,
+    )
 
 
 @app.command()

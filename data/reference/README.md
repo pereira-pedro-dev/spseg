@@ -63,17 +63,21 @@ domicílios) fica como alternativa documentada.
 
 ```csv
 bairro_raw,bairro_id,fonte
-JD SAO LUIS,jardim-sao-luis,curado
+JD PAULISTA,355030862,"derivado:geo n=482 share=0.97"
 ```
 
 Mapeia grafias brutas do campo `BAIRRO` para o `bairro_id` canônico. A chave é
 normalizada (sem acento, maiúscula, abreviações expandidas) antes da comparação.
-Aliases derivados dos registros geolocalizados trazem `n` e `share` em `fonte`
-(ver `scripts/build_aliases.py`).
+Aliases derivados dos registros geolocalizados trazem `n` e `share` em `fonte`.
+Só entram grafias com `n >= 5` e share do distrito modal `>= 0.85`; nomes
+ambíguos ficam `unresolved` de propósito. Aliases com `fonte` diferente de
+`derivado:geo` são tratados como curados e preservados pelo script.
 
 ## Construção
 
 `scripts/build_reference.py` baixa o WFS do GeoSampa e o ZIP do IBGE, casa os
 dois pelo nome normalizado e escreve o GeoJSON, os CSVs e `SOURCES.md`.
-`scripts/build_aliases.py` (M3) aprende aliases a partir do cache geolocalizado.
-Depois de gerar ou editar a referência, rode `uv run spseg ingest --force`.
+`scripts/build_aliases.py` lê o cache geolocalizado e grava
+`bairro_aliases.csv` (use `--dry-run` para auditar antes). Depois de gerar ou
+editar a referência, rode `uv run spseg ingest`; o fingerprint da referência
+dispara o rebuild do estágio 2 sozinho (`--force` só relê o Excel).
