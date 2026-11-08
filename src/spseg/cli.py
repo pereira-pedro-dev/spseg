@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import dataclasses
+import typing
 from datetime import date
 from pathlib import Path
 
@@ -10,6 +11,7 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
+from spseg.analysis.compare import build_compare
 from spseg.analysis.street_summary import NoStreetData, build_street_summary
 from spseg.analysis.summary import BairroNotFound, CacheMissing, build_summary
 from spseg.config import DEFAULT_MUNICIPIO, Settings, get_settings
@@ -26,11 +28,16 @@ from spseg.render.console import (
     CONSOLE,
     fmt_int,
     render_check,
+    render_compare,
     render_distrito_list,
     render_street_summary,
     render_summary,
 )
-from spseg.render.export import street_summary_to_json, summary_to_json
+from spseg.render.export import (
+    compare_to_json,
+    street_summary_to_json,
+    summary_to_json,
+)
 
 app = typer.Typer(
     no_args_is_help=True,
@@ -70,6 +77,15 @@ def _parse_date(value: str | None, option: str) -> date | None:
         return date.fromisoformat(value)
     except ValueError:
         _fail(f"{option} deve estar no formato AAAA-MM-DD (recebido: {value!r}).")
+
+
+def _district_not_found(exc: BairroNotFound, source: BaseException) -> typing.NoReturn:
+    CONSOLE.print(f"[red]Distrito não encontrado:[/red] {exc.query}")
+    if exc.suggestions:
+        CONSOLE.print("Talvez você quis dizer:")
+        for name, score in exc.suggestions:
+            CONSOLE.print(f"  • {name} ({score:.0f}%)")
+    raise typer.Exit(code=2) from source
 
 
 @app.command()
@@ -243,12 +259,7 @@ def _show_summary(
     except CacheMissing as exc:
         _fail(str(exc), code=3)
     except BairroNotFound as exc:
-        CONSOLE.print(f"[red]Distrito não encontrado:[/red] {exc.query}")
-        if exc.suggestions:
-            CONSOLE.print("Talvez você quis dizer:")
-            for name, score in exc.suggestions:
-                CONSOLE.print(f"  • {name} ({score:.0f}%)")
-        raise typer.Exit(code=2) from exc
+        _district_not_found(exc, exc)
     except (ValueError, FileNotFoundError) as exc:
         _fail(str(exc))
 
@@ -282,12 +293,7 @@ def _show_street(
     except CacheMissing as exc:
         _fail(str(exc), code=3)
     except BairroNotFound as exc:
-        CONSOLE.print(f"[red]Distrito não encontrado:[/red] {exc.query}")
-        if exc.suggestions:
-            CONSOLE.print("Talvez você quis dizer:")
-            for name, score in exc.suggestions:
-                CONSOLE.print(f"  • {name} ({score:.0f}%)")
-        raise typer.Exit(code=2) from exc
+        _district_not_found(exc, exc)
     except StreetNotFound as exc:
         CONSOLE.print(f"[red]Rua não encontrada em {exc.distrito} no período:[/red] {exc.query}")
         if exc.suggestions:
@@ -388,6 +394,46 @@ def distrito(
         ate=ate,
         json_output=json_output,
     )
+
+
+@app.command()
+def compare(
+    nomes: list[str] = typer.Argument(
+        ...,
+        help=('Dois a seis distritos na mesma janela (ex.: Pinheiros "Itaim Bibi").'),
+    ),
+    municipio: str = typer.Option(DEFAULT_MUNICIPIO, "--municipio"),
+    anos: int | None = typer.Option(
+        None,
+        "--anos",
+        help="Janela móvel em anos (ex.: 3). Padrão: toda a cobertura dos arquivos.",
+    ),
+    desde: str | None = typer.Option(None, "--desde", help="Data inicial (AAAA-MM-DD)."),
+    ate: str | None = typer.Option(None, "--ate", help="Data final (AAAA-MM-DD)."),
+    json_output: bool = typer.Option(False, "--json", help="Saída JSON."),
+) -> None:
+    """Compara distritos lado a lado, com score relativo (provisório)."""
+    settings = _settings()
+    try:
+        comparison = build_compare(
+            settings,
+            nomes,
+            municipio=municipio,
+            since=_parse_date(desde, "--desde"),
+            until=_parse_date(ate, "--ate"),
+            years=anos,
+        )
+    except CacheMissing as exc:
+        _fail(str(exc), code=3)
+    except BairroNotFound as exc:
+        _district_not_found(exc, exc)
+    except (ValueError, FileNotFoundError) as exc:
+        _fail(str(exc))
+
+    if json_output:
+        typer.echo(compare_to_json(comparison))
+    else:
+        render_compare(comparison)
 
 
 @app.command()

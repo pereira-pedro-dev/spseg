@@ -4,6 +4,25 @@ nota: >-
   Regras provisórias, pendentes da sessão de metodologia. Cada registro entra em
   uma única categoria, por ordem de prioridade (o primeiro que casar vence).
 
+# Pesos por natureza para o score relativo à cidade (provisorio, declarados
+# manualmente; sem tabela oficial de sentença para SP). A chave é a natureza
+# normalizada (sem acento, maiúscula, espaços colapsados; o hífen é mantido).
+# Natureza não listada usa peso_padrao e a saída avisa quando isso acontece.
+# Os pesos valem por ocorrência (linha), não por BO.
+pesos:
+  peso_padrao: 1
+  por_natureza:
+    HOMICIDIO DOLOSO: 10
+    LATROCINIO: 10
+    LESAO CORPORAL SEGUIDA DE MORTE: 9
+    ESTUPRO: 8
+    TENTATIVA DE HOMICIDIO: 8
+    EXTORSAO MEDIANTE SEQUESTRO: 8
+    ROUBO - OUTROS: 7
+    ROUBO DE VEICULO: 3
+    LESAO CORPORAL DOLOSA: 4
+
+
 categorias:
   - id: invasao_residencia
     rotulo: Invasão de residência
@@ -14,7 +33,6 @@ categorias:
           - Residencia
           - Condomínio Residencial
           - Condominio Residencial
-          - Favela
         natureza:
           - FURTO - OUTROS
           - FURTO DE VEÍCULO

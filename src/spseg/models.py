@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import date, datetime
 
+from spseg.analysis.taxonomy import NaturezaWeights
+
 
 @dataclass(frozen=True)
 class Period:
@@ -89,6 +91,7 @@ class BairroSummary:
     generated_at: datetime
     nivel: str = "distrito"
     denominator_source: str | None = None
+    score: DistrictScore | None = None
 
 
 @dataclass(frozen=True)
@@ -160,3 +163,77 @@ class StreetSummary:
     taxonomy_provisional: bool
     generated_at: datetime
     nivel: str = "rua"
+
+
+@dataclass(frozen=True)
+class CategoryScore:
+    """Uma categoria no score relativo: taxa, taxa ponderada e percentil."""
+
+    id: str
+    label: str
+    occurrences: int
+    incidents: int
+    rate_per_100k: float | None = None
+    weighted_occurrences: float | None = None
+    weighted_rate_per_100k: float | None = None
+    percentile: float | None = None
+    eligible: bool = False
+    notes: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class DistrictScore:
+    """Score de um distrito na janela: composição ponderada dos percentis."""
+
+    bairro_id: str
+    bairro_nome: str
+    available: bool = False
+    value: float | None = None
+    rank: int | None = None
+    of: int | None = None
+    weight_coverage: float | None = None
+    weights: NaturezaWeights | None = None
+    categories: tuple[CategoryScore, ...] = ()
+    notes: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class CityScores:
+    """Baseline da cidade para o score relativo, na janela consultada."""
+
+    municipio: str
+    period: Period
+    total_districts: int
+    scored: int
+    weights: NaturezaWeights
+    taxonomy_provisional: bool
+    districts: dict[str, DistrictScore] = field(default_factory=dict)
+    notes: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class CompareDistrict:
+    """Um distrito na comparação: resumo + score + qualidade."""
+
+    bairro_nome: str
+    bairro_id: str
+    total_occurrences: int
+    total_incidents: int
+    population: int | None
+    categories: tuple[CategorySummary, ...]
+    score: DistrictScore
+    method_counts: dict[str, int] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class CompareSummary:
+    """Saída do `spseg compare`: mesma janela para todos os distritos."""
+
+    municipio: str
+    period: Period
+    districts: tuple[CompareDistrict, ...]
+    weights: NaturezaWeights
+    taxonomy_provisional: bool
+    generated_at: datetime
+    city_resolution_rate: float | None = None
+    city_suppressed: int = 0

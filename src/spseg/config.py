@@ -18,6 +18,12 @@ FUZZY_THRESHOLD = 92.0
 FUZZY_MARGIN = 4.0
 FUZZY_SUGGESTION_LIMIT = 5
 
+# Score relativo à cidade. O piso existe porque taxas com poucos casos são
+# ruído; exatamente zero ocorrências é observação real (e protege os distritos
+# mais seguros). O score só sai se sobrar peso suficiente para a composição.
+SCORE_MIN_CATEGORY_CASES = 25
+SCORE_MIN_WEIGHT_COVERAGE = 0.60
+
 # No lote, fuzzy casa nome de bairro contra nome de distrito e erra calado
 # (ex.: JARDIM PAULISTA). Só exact/alias; fuzzy fica para a busca do usuário.
 BATCH_FUZZY = False

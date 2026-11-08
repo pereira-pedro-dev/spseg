@@ -7,7 +7,10 @@ import json
 from spseg.models import (
     BairroSummary,
     CategorySummary,
+    CompareDistrict,
+    CompareSummary,
     DistrictCategoryContext,
+    NaturezaWeights,
     StreetCategory,
     StreetSummary,
 )
@@ -61,12 +64,123 @@ def summary_to_dict(summary: BairroSummary) -> dict:
             "notes": list(summary.quality.notes),
         },
         "taxonomy_provisional": summary.taxonomy_provisional,
+        "score": score_to_dict(summary.score),
         "generated_at": summary.generated_at.isoformat(timespec="seconds"),
     }
 
 
 def summary_to_json(summary: BairroSummary, *, indent: int = 2) -> str:
     return json.dumps(summary_to_dict(summary), ensure_ascii=False, indent=indent)
+
+
+def score_to_dict(score) -> dict | None:  # noqa: ANN001 - DistrictScore/None
+    if score is None:
+        return None
+    return {
+        "available": score.available,
+        "value": score.value,
+        "rank": score.rank,
+        "of": score.of,
+        "weight_coverage": score.weight_coverage,
+        "notes": list(score.notes),
+        "categories": [
+            {
+                "id": category.id,
+                "label": category.label,
+                "occurrences": category.occurrences,
+                "incidents": category.incidents,
+                "rate_per_100k": category.rate_per_100k,
+                "weighted_occurrences": category.weighted_occurrences,
+                "weighted_rate_per_100k": category.weighted_rate_per_100k,
+                "percentile": category.percentile,
+                "eligible": category.eligible,
+                "notes": list(category.notes),
+            }
+            for category in score.categories
+        ],
+        "weights": _weights_to_dict(score.weights) if score.weights is not None else None,
+    }
+
+
+def _weights_to_dict(weights: NaturezaWeights) -> dict:
+    return {
+        "padrao": weights.padrao,
+        "por_natureza": dict(sorted(weights.por_natureza.items())),
+        "declared": weights.declared,
+        "source": weights.source,
+    }
+
+
+def _compare_district_to_dict(
+    district: CompareDistrict, city_resolution_rate: float | None, city_suppressed: int
+) -> dict:
+    percentile_by_category: dict[str, float | None] = {}
+    if district.score is not None:
+        percentile_by_category = {
+            category.id: category.percentile for category in district.score.categories
+        }
+    return {
+        "bairro": district.bairro_nome,
+        "bairro_id": district.bairro_id,
+        "population": district.population,
+        "totals": {
+            "occurrences": district.total_occurrences,
+            "incidents": district.total_incidents,
+        },
+        "categories": [
+            {
+                "id": category.id,
+                "label": category.label,
+                "occurrences": category.occurrences,
+                "incidents": category.incidents,
+                "rate_per_100k": category.rate_per_100k,
+                "rate_per_10k_households": category.rate_per_10k_households,
+                "percentile": percentile_by_category.get(category.id),
+                "trend": category.trend,
+                "trend_pct": category.trend_pct,
+                "top_natures": [
+                    {"natureza": name, "occurrences": count} for name, count in category.top_natures
+                ],
+            }
+            for category in district.categories
+        ],
+        "score": score_to_dict(district.score),
+        "quality": {
+            "rows_in_bairro": district.total_occurrences,
+            "method_counts": dict(district.method_counts),
+            "resolution_rate": city_resolution_rate,
+            "suppressed_city": city_suppressed,
+        },
+    }
+
+
+def compare_to_dict(summary: CompareSummary) -> dict:
+    return {
+        "nivel": "compare",
+        "municipio": summary.municipio,
+        "period": {
+            "start": summary.period.start.isoformat(),
+            "end": summary.period.end.isoformat(),
+            "label": summary.period.label,
+            "partial": summary.period.partial,
+            "notes": list(summary.period.notes),
+        },
+        "weights": _weights_to_dict(summary.weights),
+        "city_resolution_rate": summary.city_resolution_rate,
+        "city_suppressed": summary.city_suppressed,
+        "districts": [
+            _compare_district_to_dict(
+                district, summary.city_resolution_rate, summary.city_suppressed
+            )
+            for district in summary.districts
+        ],
+        "taxonomy_provisional": summary.taxonomy_provisional,
+        "generated_at": summary.generated_at.isoformat(timespec="seconds"),
+    }
+
+
+def compare_to_json(summary: CompareSummary, *, indent: int = 2) -> str:
+    return json.dumps(compare_to_dict(summary), ensure_ascii=False, indent=indent)
 
 
 def _street_category_to_dict(category: StreetCategory) -> dict:

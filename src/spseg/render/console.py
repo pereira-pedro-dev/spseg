@@ -7,7 +7,7 @@ from rich.markup import escape
 from rich.panel import Panel
 from rich.table import Table
 
-from spseg.models import BairroSummary, StreetSummary
+from spseg.models import BairroSummary, CompareSummary, StreetSummary
 from spseg.quality.checks import CheckSection
 
 CONSOLE = Console()
@@ -102,6 +102,7 @@ def render_summary(summary: BairroSummary, console: Console | None = None) -> No
         "[dim]Ocorr. = registros por natureza; Incidentes = BOs distintos. "
         "Cada registro entra em uma única categoria (prioridade).[/dim]"
     )
+    console.print(_score_block(summary.score))
 
     nature_rows = [
         (category.label, category.top_natures)
@@ -142,6 +143,153 @@ def render_summary(summary: BairroSummary, console: Console | None = None) -> No
 
 def _fmt_share(value: float | None) -> str:
     return fmt_pct(None if value is None else value * 100)
+
+
+def _score_block(score) -> str:  # noqa: ANN001 - DistrictScore | None
+    if score is None:
+        return "Score: n/d — nenhum distrito com score na janela."
+    header = "Score (provisório): n/d"
+    if score.available and score.value is not None:
+        if score.rank is not None and score.of:
+            header = (
+                f"Score (provisório): {fmt_rate(score.value, 2)} — "
+                f"{fmt_int(score.rank)}º mais seguro de {fmt_int(score.of)} "
+                "distritos com score"
+            )
+        else:
+            header = f"Score (provisório): {fmt_rate(score.value, 2)}"
+    if score.weight_coverage is not None and score.weight_coverage < 1:
+        header += f" | peso elegível: {_fmt_share(score.weight_coverage)}"
+    lines = [header]
+    lines.extend(f"• {escape(note)}" for note in score.notes)
+    return "\n".join(lines)
+
+
+def render_compare(summary: CompareSummary, console: Console | None = None) -> None:
+    console = console or CONSOLE
+    names = " vs ".join(district.bairro_nome for district in summary.districts)
+    header = (
+        f"[bold]Distritos:[/bold] {escape(names)} — {escape(summary.municipio)}\n"
+        f"Período: {summary.period.label}\n"
+        f"Janela idêntica para todos os distritos"
+    )
+    if summary.period.partial:
+        header += "\n[yellow]⚠ ano corrente incompleto na base[/yellow]"
+    console.print(Panel(header, title="Comparação de distritos", expand=False))
+
+    overview = Table(show_header=True, header_style="bold", expand=False)
+    overview.add_column("Distrito")
+    overview.add_column("Ocorr.", justify="right")
+    overview.add_column("Incidentes", justify="right")
+    overview.add_column("População", justify="right")
+    overview.add_column("Score (provisório)", justify="right")
+    overview.add_column("Posto de segurança", justify="right")
+    for district in summary.districts:
+        score = district.score
+        if score is not None and score.available and score.value is not None:
+            value = fmt_rate(score.value, 2)
+            rank = (
+                f"{fmt_int(score.rank)}º de {fmt_int(score.of)}"
+                if score.rank is not None and score.of
+                else "n/d"
+            )
+        else:
+            value, rank = "n/d", "n/d"
+        overview.add_row(
+            escape(district.bairro_nome),
+            fmt_int(district.total_occurrences),
+            fmt_int(district.total_incidents),
+            fmt_int(district.population),
+            value,
+            rank,
+        )
+    console.print(overview)
+
+    category_table = Table(
+        title="Por categoria: n / taxa por 100 mil hab. / percentil",
+        show_header=True,
+        header_style="bold",
+        expand=False,
+    )
+    category_table.add_column("Categoria")
+    for district in summary.districts:
+        category_table.add_column(escape(district.bairro_nome), justify="right")
+    category_ids = {
+        category.id for district in summary.districts for category in district.categories
+    }
+    score_categories = {
+        district.bairro_nome: {
+            category.id: category
+            for category in (district.score.categories if district.score else ())
+        }
+        for district in summary.districts
+    }
+    for category_id in category_ids:
+        label = next(
+            (
+                category.label
+                for district in summary.districts
+                for category in district.categories
+                if category.id == category_id
+            ),
+            category_id,
+        )
+        row = [escape(label)]
+        for district in summary.districts:
+            category = next((c for c in district.categories if c.id == category_id), None)
+            if category is None:
+                row.append("—")
+                continue
+            scored = score_categories.get(district.bairro_nome, {}).get(category_id)
+            percentile = (
+                _fmt_share(scored.percentile)
+                if scored is not None and scored.percentile is not None
+                else "n/d"
+            )
+            row.append(
+                f"{fmt_int(category.occurrences)}\n{fmt_rate(category.rate_per_100k)} "
+                f"| {percentile}"
+            )
+        category_table.add_row(*row)
+    console.print(category_table)
+    console.print(
+        "[dim]Taxa por 100 mil habitantes (Censo 2022 estático para 2024–2026). "
+        "Percentil: menor = mais seguro em relação aos distritos elegíveis na "
+        "mesma janela. Score e posto são provisórios e aparecem sempre com os "
+        "percentis por categoria.[/dim]"
+    )
+
+    quality_lines = [
+        "Resolução da cidade no período: "
+        + fmt_pct(
+            None if summary.city_resolution_rate is None else summary.city_resolution_rate * 100
+        ),
+    ]
+    if summary.city_suppressed:
+        quality_lines.append(
+            f"{fmt_int(summary.city_suppressed)} registros com local suprimido não "
+            "entram em nenhum distrito."
+        )
+    if not summary.weights.declared:
+        quality_lines.append(
+            "Pesos por natureza não declarados: score com peso igual (provisório)."
+        )
+    for district in summary.districts:
+        methods = ", ".join(
+            f"{method}: {fmt_int(count)}"
+            for method, count in sorted(district.method_counts.items())
+        )
+        quality_lines.append(f"[bold]{escape(district.bairro_nome)}[/bold]: {methods}")
+        score = district.score
+        if score is not None:
+            quality_lines.extend(f"  • {escape(note)}" for note in score.notes)
+    console.print(Panel("\n".join(quality_lines), title="Qualidade e metodologia", expand=False))
+
+    if summary.taxonomy_provisional:
+        console.print(
+            "[yellow]Aviso:[/yellow] taxonomia e pesos provisórios — não use a "
+            "comparação como critério único de decisão."
+        )
 
 
 def _composition_lines(rows: tuple[tuple[str, int], ...]) -> str:

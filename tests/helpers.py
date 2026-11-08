@@ -127,6 +127,124 @@ def write_facts(settings, frame: pd.DataFrame, year: int) -> None:
     write_parquet(frame, facts_cache_path(settings, year))
 
 
+def make_city_facts(
+    districts: tuple[tuple[str, str, int, int], ...],
+    *,
+    start: str = "2024-01-05",
+    months: int = 12,
+) -> pd.DataFrame:
+    """Cidade sintética multi-distrito.
+
+    `districts`: sequência de `(bairro_id, bairro_nome, n_violentos, n_nao_violentos)`.
+    Cada linha violenta é `ROUBO - OUTROS` → `crime_violento`; cada não violenta
+    é `FURTO - OUTROS` → `crime_nao_violento`. BOs e datas distintos, espalhados
+    por `months` meses a partir de `start`.
+    """
+    dates = pd.date_range(start=start, periods=months, freq="MS")
+    rows: list[dict] = []
+    counter = 0
+    for bairro_id, bairro_nome, violent, non_violent in districts:
+        for natureza, count in (
+            ("ROUBO - OUTROS", violent),
+            ("FURTO - OUTROS", non_violent),
+        ):
+            category = "crime_violento" if natureza == "ROUBO - OUTROS" else "crime_nao_violento"
+            for _index in range(count):
+                counter += 1
+                date = dates[(counter - 1) % months]
+                rows.append(
+                    {
+                        "num_bo": f"BO{counter:05d}",
+                        "ano_bo": date.year,
+                        "bo_key": f"{date.year}/BO{counter:05d}",
+                        "data_registro": date,
+                        "data_ocorrencia": date,
+                        "bairro_raw": bairro_nome,
+                        "bairro_nome": bairro_nome,
+                        "bairro_id": bairro_id,
+                        "bairro_method": "exact",
+                        "bairro_confidence": 1.0,
+                        "distrito_id": bairro_id,
+                        "municipio": "São Paulo",
+                        "municipio_key": "SAO PAULO",
+                        "natureza": natureza,
+                        "tipo_local": "Via Pública",
+                        "conduta": "Outros",
+                        "latitude": -23.56,
+                        "longitude": -46.70,
+                        "crime_category": category,
+                        "source_sheet": "TESTE",
+                    }
+                )
+    return pd.DataFrame(rows)
+
+
+def write_population_multi(
+    settings,
+    rows: tuple[tuple[str, str, int, int], ...],
+    *,
+    nivel: str = "bairro",
+) -> None:
+    """População/domicílios de vários bairros: `(id, nome, populacao, domicilios)`."""
+    pd.DataFrame(
+        [
+            {
+                "bairro_id": bairro_id,
+                "bairro_nome": bairro_nome,
+                "populacao": populacao,
+                "domicilios": domicilios,
+                "ano": 2022,
+                "fonte": "Censo teste",
+                "nivel": nivel,
+            }
+            for bairro_id, bairro_nome, populacao, domicilios in rows
+        ]
+    ).to_csv(settings.reference_dir / "populacao_bairro.csv", index=False)
+    pd.DataFrame(
+        [
+            {
+                "bairro_id": bairro_id,
+                "bairro_nome": bairro_nome,
+                "domicilios": domicilios,
+                "ano": 2022,
+                "fonte": "Censo teste",
+                "nivel": nivel,
+            }
+            for bairro_id, bairro_nome, populacao, domicilios in rows
+        ]
+    ).to_csv(settings.reference_dir / "domicilios_bairro.csv", index=False)
+
+
+WEIGHTED_TAXONOMY_YAML = """\
+versao: 1
+provisorio: true
+# Pesos de teste: violento 5, não violento 2.
+pesos:
+  peso_padrao: 1
+  por_natureza:
+    ROUBO - OUTROS: 5
+    FURTO - OUTROS: 2
+categorias:
+  - id: crime_violento
+    rotulo: Crimes violentos
+    prioridade: 30
+    regras:
+      - natureza: [ROUBO - OUTROS]
+  - id: crime_nao_violento
+    rotulo: Crimes não violentos
+    prioridade: 40
+    regras:
+      - natureza: [FURTO - OUTROS]
+"""
+
+
+def write_taxonomy(settings) -> None:
+    """Taxonomia com pesos fixos de teste."""
+    (settings.reference_dir / "crime_taxonomy.yml").write_text(
+        WEIGHTED_TAXONOMY_YAML, encoding="utf-8"
+    )
+
+
 def write_population(
     settings,
     *,

@@ -6,7 +6,8 @@ fallback por coordenadas.
 
 ## `crime_taxonomy.yml`
 
-Regras de agrupamento das naturezas. **Provisório** até a sessão de metodologia.
+Regras de agrupamento das naturezas e pesos de severidade. **Provisório** até
+a sessão de metodologia.
 
 ```yaml
 categorias:
@@ -25,6 +26,28 @@ categorias:
 
 Cada registro entra em **uma** categoria: vence a regra de menor `prioridade`.
 A categoria com `padrao: true` recebe o que não casar.
+
+### Bloco `pesos` (opcional)
+
+Pesos por natureza para o score relativo à cidade (`spseg bairro`/`compare`).
+Somados na análise — **não** exige reingestão nem mudam o cache.
+
+```yaml
+pesos:
+  peso_padrao: 1                    # natureza fora da tabela cai aqui (com aviso)
+  por_natureza:
+    HOMICIDIO DOLOSO: 10
+    FURTO - OUTROS: 2
+```
+
+- A chave é a natureza **normalizada**: sem acento, maiúscula, espaços
+  colapsados; o hífen (`-`) é mantido (`HOMICÍDIO DOLOSO` → `HOMICIDIO DOLOSO`,
+  `ROUBO - OUTROS` → `ROUBO - OUTROS`).
+- Valor inteiro positivo; quanto maior, mais pesa na taxa ponderada da
+  categoria.
+- Sem o bloco `pesos`, o score fica com peso 1 para todas as naturezas
+  (homicídio pesaria como furto) e as saídas avisam.
+- Pesos originais no YAML podem usar acentos; a normalização cuida disso.
 
 ## `distritos_sp.geojson`
 

@@ -8,7 +8,15 @@ import pytest
 from typer.testing import CliRunner
 
 from spseg.cli import app
-from tests.helpers import make_facts, make_street_facts, write_facts, write_population
+from tests.helpers import (
+    make_city_facts,
+    make_facts,
+    make_street_facts,
+    write_facts,
+    write_population,
+    write_population_multi,
+    write_taxonomy,
+)
 
 runner = CliRunner()
 
@@ -20,7 +28,7 @@ def _seed(settings) -> None:
 def test_help_lists_commands():
     result = runner.invoke(app, ["--help"])
     assert result.exit_code == 0
-    for command in ("ingest", "check", "list", "bairro", "distrito", "rua", "doctor"):
+    for command in ("ingest", "check", "list", "bairro", "distrito", "rua", "compare", "doctor"):
         assert command in result.output
 
 
@@ -269,3 +277,120 @@ def test_rua_same_street_two_districts(settings):
     assert vila_mariana.exit_code == 0
     assert json.loads(pinheiros.output)["totals"]["occurrences"] == 8
     assert json.loads(vila_mariana.output)["totals"]["occurrences"] == 1
+
+
+# ---------------------------------------------------------------- score/compare
+
+CITY = (
+    ("pinheiros", "Pinheiros", 120, 120),
+    ("moema", "Moema", 60, 60),
+    ("itaim", "Itaim", 30, 30),
+)
+POPULATION = (
+    ("pinheiros", "Pinheiros", 100_000, 50_000),
+    ("moema", "Moema", 100_000, 50_000),
+    ("itaim", "Itaim", 100_000, 50_000),
+)
+
+
+def _seed_city(settings) -> None:
+    write_facts(settings, make_city_facts(CITY), 2024)
+    write_population_multi(settings, POPULATION)
+    write_taxonomy(settings)
+
+
+def test_bairro_json_includes_score(settings):
+    _seed_city(settings)
+    result = runner.invoke(app, ["bairro", "Pinheiros", "--json"])
+    assert result.exit_code == 0
+    payload = json.loads(result.output)
+    score = payload["score"]
+    assert score["available"] is True
+    assert score["value"] == pytest.approx(1.0)
+    assert score["rank"] == 3
+    assert score["of"] == 3
+    assert score["weights"]["declared"] is True
+    assert score["weights"]["por_natureza"]["ROUBO - OUTROS"] == 5
+    categories = {category["id"]: category for category in score["categories"]}
+    assert categories["crime_violento"]["percentile"] == pytest.approx(1.0)
+    assert categories["crime_violento"]["weighted_rate_per_100k"] == pytest.approx(600.0)
+    assert categories["crime_nao_violento"]["occurrences"] == 120
+
+
+def test_compare_json_contract(settings):
+    _seed_city(settings)
+    result = runner.invoke(app, ["compare", "Pinheiros", "Moema", "Itaim", "--json"])
+    assert result.exit_code == 0
+    payload = json.loads(result.output)
+    assert payload["nivel"] == "compare"
+    assert payload["municipio"] == "São Paulo"
+    assert payload["period"]["start"] == "2024-02-01"
+    assert payload["taxonomy_provisional"] is True
+    assert payload["weights"]["declared"] is True
+    assert payload["city_resolution_rate"] == pytest.approx(1.0)
+    assert len(payload["districts"]) == 3
+    first = payload["districts"][0]
+    assert first["bairro"] == "Pinheiros"
+    assert first["totals"]["occurrences"] == 240
+    assert first["population"] == 100_000
+    assert first["score"]["value"] == pytest.approx(1.0)
+    assert first["score"]["rank"] == 3
+    assert first["score"]["of"] == 3
+    assert {category["id"] for category in first["categories"]} == {
+        "crime_violento",
+        "crime_nao_violento",
+        "outros",
+    }
+
+
+def test_compare_score_matches_bairro_json(settings):
+    _seed_city(settings)
+    via_compare = runner.invoke(app, ["compare", "Pinheiros", "Moema", "--json"])
+    via_bairro = runner.invoke(app, ["bairro", "Moema", "--json"])
+    assert via_compare.exit_code == 0
+    assert via_bairro.exit_code == 0
+    cell = next(
+        district
+        for district in json.loads(via_compare.output)["districts"]
+        if district["bairro"] == "Moema"
+    )
+    bairro_score = json.loads(via_bairro.output)["score"]
+    compare_score = cell["score"]
+    assert compare_score["value"] == bairro_score["value"]
+    assert compare_score["rank"] == bairro_score["rank"]
+    assert compare_score["of"] == bairro_score["of"]
+
+
+def test_compare_text_output(settings):
+    _seed_city(settings)
+    result = runner.invoke(app, ["compare", "Pinheiros", "Moema"])
+    assert result.exit_code == 0
+    output = result.output
+    assert "Comparação de distritos" in output
+    assert "Pinheiros" in output
+    assert "Qualidade e metodologia" in output
+    assert "taxonomia e pesos provisórios" in output
+
+
+def test_compare_single_district_exits_1(settings):
+    _seed_city(settings)
+    result = runner.invoke(app, ["compare", "Pinheiros"])
+    assert result.exit_code == 1
+
+
+def test_compare_seven_districts_exits_1(settings):
+    _seed_city(settings)
+    result = runner.invoke(app, ["compare", *("A", "B", "C", "D", "E", "F", "G")])
+    assert result.exit_code == 1
+
+
+def test_compare_unknown_district_exits_2(settings):
+    _seed_city(settings)
+    result = runner.invoke(app, ["compare", "Pinheiros", "ZZZZZZZZ"])
+    assert result.exit_code == 2
+    assert "Distrito não encontrado" in result.output
+
+
+def test_compare_without_cache_exits_3(settings):
+    result = runner.invoke(app, ["compare", "Pinheiros", "Moema"])
+    assert result.exit_code == 3

@@ -8,14 +8,49 @@ prioridade), para que as categorias não se sobreponham.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 import pandas as pd
 import yaml
 
+from spseg.geo.text import strip_accents
+
 DEFAULT_CATEGORY_ID = "outros"
+
+
+def natureza_key(value: object) -> str:
+    """Chave da natureza para o mapa de pesos: sem acento, maiúscula, única."""
+    if value is None:
+        return ""
+    try:
+        if value != value:  # NaN sem importar pandas
+            return ""
+    except (TypeError, ValueError):
+        pass
+    text = strip_accents(str(value)).upper()
+    return " ".join(text.split())
+
+
+@dataclass(frozen=True)
+class NaturezaWeights:
+    """Pesos de severidade por natureza, declarados no YAML (provisórios).
+
+    Sem bloco `pesos`, tudo fica com peso igual (`padrao`) e `declared=False`;
+    a saída avisa que o score usa pesos default.
+    """
+
+    padrao: float = 1.0
+    por_natureza: dict[str, float] = field(default_factory=dict)
+    declared: bool = False
+    source: str | None = None
+
+    def of(self, natureza: object) -> float:
+        return self.por_natureza.get(natureza_key(natureza), self.padrao)
+
+    def known(self, natureza: object) -> bool:
+        return natureza_key(natureza) in self.por_natureza
 
 
 @dataclass(frozen=True)
@@ -50,6 +85,7 @@ class Taxonomy:
     provisional: bool = True
     source: str | None = None
     note: str | None = None
+    weights: NaturezaWeights | None = None
 
     def __post_init__(self) -> None:
         self.categories = tuple(sorted(self.categories, key=lambda c: (c.priority, c.id)))
@@ -195,6 +231,33 @@ DEFAULT_TAXONOMY_DATA: dict[str, Any] = {
 }
 
 
+def _weights_from_dict(data: dict[str, Any], source: str | None) -> NaturezaWeights:
+    raw = data.get("pesos") or data.get("weights")
+    if not isinstance(raw, dict):
+        return NaturezaWeights(padrao=1.0, por_natureza={}, declared=False, source=source)
+    try:
+        padrao = float(raw.get("peso_padrao") if raw.get("peso_padrao") is not None else 1.0)
+    except (TypeError, ValueError):
+        padrao = 1.0
+    mapping: dict[str, float] = {}
+    entries = raw.get("por_natureza") or raw.get("by_natureza") or {}
+    if isinstance(entries, dict):
+        for key, value in entries.items():
+            normalized = natureza_key(key)
+            if not normalized:
+                continue
+            try:
+                mapping[normalized] = float(value)
+            except (TypeError, ValueError):
+                continue
+    return NaturezaWeights(
+        padrao=padrao,
+        por_natureza=mapping,
+        declared=bool(mapping),
+        source=source,
+    )
+
+
 def taxonomy_from_dict(data: dict[str, Any], *, source: str | None = None) -> Taxonomy:
     categories: list[Category] = []
     for item in data.get("categorias", []):
@@ -216,6 +279,7 @@ def taxonomy_from_dict(data: dict[str, Any], *, source: str | None = None) -> Ta
         provisional=bool(data.get("provisorio", True)),
         source=source,
         note=data.get("nota"),
+        weights=_weights_from_dict(data, source),
     )
 
 

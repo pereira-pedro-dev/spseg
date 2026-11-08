@@ -8,6 +8,7 @@ import pandas as pd
 
 from spseg.analysis.aggregate import summarize_categories, total_incidents
 from spseg.analysis.period import resolve_period
+from spseg.analysis.score import build_city_scores
 from spseg.config import DEFAULT_MUNICIPIO, Settings
 from spseg.data.cache import cached_years, load_manifest, read_facts
 from spseg.data.reference import (
@@ -96,8 +97,9 @@ def build_summary(
     in_period = (dates >= pd.Timestamp(period.start)) & (
         dates < pd.Timestamp(period.end) + pd.Timedelta(days=1)
     )
-    frame = facts[in_period & (facts["bairro_id"] == entry.bairro_id)]
-    city_frame = facts[in_period]
+    period_frame = facts[in_period]
+    frame = period_frame[period_frame["bairro_id"] == entry.bairro_id]
+    city_frame = period_frame
 
     population = reference.population_for(entry)
     households = reference.households_for(entry)
@@ -188,6 +190,17 @@ def build_summary(
         notes=tuple(notes),
     )
 
+    city_scores = build_city_scores(
+        settings,
+        period_frame,
+        period=period,
+        resolver=resolver,
+        reference=reference,
+        taxonomy=taxonomy,
+        municipio=municipio,
+    )
+    score = city_scores.districts.get(entry.bairro_id)
+
     return BairroSummary(
         bairro_nome=entry.bairro_nome,
         bairro_id=entry.bairro_id,
@@ -204,4 +217,5 @@ def build_summary(
         generated_at=datetime.now(),
         nivel="distrito",
         denominator_source=denominator_source,
+        score=score,
     )

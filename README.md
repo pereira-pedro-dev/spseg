@@ -9,9 +9,9 @@ oficial (GeoSampa) e denominador oficial (IBGE Censo 2022). Nomes de bairro
 continuam funcionando como **alias de busca**: `spseg bairro pinheiros` e
 `spseg distrito pinheiros` devolvem o mesmo resumo do distrito de Pinheiros.
 
-Esta é a **base de arquitetura e dados**. Ela ingere, cacheia, resolve distritos
-e mostra contagens por categoria. A metodologia de pontuação e o comando
-`compare` ficam para a próxima etapa.
+Esta é a **base de arquitetura e dados**. Ela ingere, cacheia, resolve
+distritos, mostra contagens por categoria e calcula um **score relativo**
+(provisório) entre distritos, além de comparação lado a lado.
 
 ## Escopo atual
 
@@ -20,7 +20,8 @@ e mostra contagens por categoria. A metodologia de pontuação e o comando
 - Planilhas de **2024, 2025 e 2026**. 2026 é um ano parcial e isso é sinalizado
   na saída.
 - Saída em português; código e docstrings em inglês.
-- Categorias de crime **provisórias** até a sessão de metodologia.
+- Categorias de crime e **pesos de severidade provisórios** até a sessão de
+  metodologia.
 
 ## Instalação
 
@@ -56,7 +57,7 @@ Os `.xlsx` e o cache **não são versionados**. O nome precisa conter o ano
 | `populacao_bairro.csv` | População por distrito (IBGE Censo 2022, `v0001`). |
 | `domicilios_bairro.csv` | Domicílios particulares ocupados (IBGE 2022, `v0007`). |
 | `bairro_aliases.csv` | Grafias de bairro aprendidas dos registros geolocalizados. |
-| `crime_taxonomy.yml` | Taxonomia provisória de categorias. |
+| `crime_taxonomy.yml` | Taxonomia provisória de categorias e pesos de severidade. |
 | `SOURCES.md` | URLs, SHA-256 e variáveis dos downloads. |
 
 Os downloads crus ficam em `data/reference/downloads/` e são ignorados pelo git.
@@ -93,8 +94,12 @@ podem ser pulados; rode `uv run spseg ingest` para montar o cache.
 uv run spseg distrito pinheiros
 uv run spseg bairro pinheiros --anos 3
 
-# Mesma consulta em JSON
+# Mesma consulta em JSON (inclui `score` com pesos e percentis)
 uv run spseg bairro pinheiros --json
+
+# Comparação lado a lado, na mesma janela (2 a 6 distritos)
+uv run spseg compare pinheiros "itaim bibi" moema
+uv run spseg compare pinheiros moema --json --anos 1
 
 # Uma rua dentro de um distrito
 uv run spseg rua "Mourato Coelho" --distrito Pinheiros
@@ -117,12 +122,13 @@ uv run spseg doctor
 | `spseg ingest` | Excel → parquet bruto → parquet enriquecido + `manifest.json`. |
 | `spseg check` | Qualidade e proveniência (`--source cache` rápido ou `excel`). |
 | `spseg list` | Distritos do cache, contagem e taxa de resolução. |
-| `spseg bairro <nome>` | Resumo por categoria; bairro é tratado como alias. |
+| `spseg bairro <nome>` | Resumo por categoria + score relativo; bairro é tratado como alias. |
 | `spseg distrito <nome>` | Alias de `spseg bairro`. |
 | `spseg rua <rua> --distrito <nome>` | Resumo de uma rua dentro do distrito. |
+| `spseg compare <2–6 nomes>` | Comparação lado a lado na mesma janela, com score. |
 | `spseg doctor` | Estado do cache e dos arquivos de referência. |
 
-### Opções de `bairro` / `distrito` / `rua`
+### Opções de `bairro` / `distrito` / `rua` / `compare`
 
 | Opção | Efeito |
 |---|---|
@@ -159,6 +165,37 @@ ocorrência antigas não esticam a janela para trás.
 - Todo resumo traz as ressalvas de cobertura, resolução de distrito e taxonomia
   provisória. Quando a resolução da cidade fica abaixo de 98%, a saída avisa que
   as contagens do distrito são **piso**, não o total real.
+
+## Score e comparação entre distritos
+
+**Definição formal das fórmulas: [`docs/metricas.md`](docs/metricas.md).**
+
+O **score** é uma nota relativa à cidade, não absoluta: ele diz *quão alto o
+distrito está entre os distritos*, na janela consultada. Nunca é um número
+isolado — a saída sempre mostra o score **com** os percentis por categoria.
+
+- Base: taxa ponderada por severidade da natureza (pesos declarados em
+  `crime_taxonomy.yml`, bloco `pesos`) → percentil por categoria entre os
+  distritos elegíveis → composição ponderada dos percentis.
+- O **posto** entra junto: "74º mais seguro de 95 distritos com score"
+  (1º = mais seguro).
+- Provisório por construção: pesos declarados manualmente, pendentes de
+  metodologia; o rótulo e os avisos aparecem em toda saída.
+- Piso por categoria: `1 <= n < 25` tira a categoria do percentil daquele
+  distrito e renormaliza os pesos; `n == 0` permanece (observação real, protege
+  o topo). O score só sai quando sobra peso elegível >= 60%.
+- Sem reingestão: os pesos são aplicados na análise, não no cache.
+- `spseg compare A B ...` (2–6 distritos) usa **uma única janela** para todos
+  os distritos — comparar janelas diferentes é proibido. Exibe contagens,
+  taxas, percentis por categoria, score/posto e qualidade da resolução.
+
+### O que o score não é
+
+- Não é probabilidade nem risco absoluto. Mudar os pesos reordena distritos —
+  continue olhando os percentis por categoria exibidos junto.
+- Não corrige a composição do território: distrito com comércio, terminal ou
+  grande circulação concentra mais crime registrado; o percentil por categoria
+  e o denominador de população do Censo 2022 não ajustam isso.
 
 ## Análise por rua dentro do distrito
 
@@ -321,8 +358,12 @@ diretório de dados.
   perceber.
 - `spseg rua` não traz número de porta, CEP, tendência nem ranking. Não há alias
   de rua nesta versão.
+- Score e pesos de severidade são **provisórios**: pesos declarados à mão em
+  `crime_taxonomy.yml`, pendentes da sessão de metodologia. Naturezas fora da
+  tabela recebem peso 1 com aviso na saída.
+- Comparar janelas diferentes não é suportado: `spseg compare` impõe uma única
+  janela, e o score/posto é relativo aos distritos elegíveis daquela janela.
 - Sem downloader automático das planilhas.
-- Sem score consolidado nem `compare` (próxima etapa).
 
 ## Granularidade por bairro (pendente)
 
