@@ -137,6 +137,51 @@ class StreetQuality:
 
 
 @dataclass(frozen=True)
+class HourBucket:
+    """Faixa de horário do dia para os eventos de uma rua."""
+
+    id: str
+    label: str
+    occurrences: int = 0
+    violent: int = 0
+
+
+@dataclass(frozen=True)
+class EventDetail:
+    """Uma linha (ocorrência × natureza) atribuível a uma rua, simplificada."""
+
+    data: date
+    hora: str | None
+    categoria_id: str
+    categoria: str
+    natureza: str
+    tipo_local: str | None
+
+
+@dataclass(frozen=True)
+class StreetEvents:
+    """Lista de eventos de uma rua: detalhe simples + distribuição por horário."""
+
+    rua: str
+    rua_raw: str
+    rua_key: str
+    rua_tipo: str | None
+    distrito: str
+    distrito_id: str | None
+    municipio: str
+    period: Period
+    total_occurrences: int
+    total_incidents: int
+    hour_buckets: tuple[HourBucket, ...]
+    events_without_hour: int
+    events: tuple[EventDetail, ...]
+    dropped_events: int
+    taxonomy_provisional: bool
+    generated_at: datetime
+    nivel: str = "rua-eventos"
+
+
+@dataclass(frozen=True)
 class StreetSummary:
     rua: str
     rua_raw: str

@@ -222,6 +222,66 @@ def test_rua_requires_distrito(settings):
     assert result.exit_code == 2
 
 
+def test_rua_eventos_json(settings):
+    _seed_street(settings)
+    result = runner.invoke(
+        app,
+        ["rua", "Mourato Coelho", "--distrito", "Pinheiros", "--eventos", "--json"],
+    )
+    assert result.exit_code == 0
+    payload = json.loads(result.output)
+    assert payload["nivel"] == "rua-eventos"
+    assert payload["rua"] == "Mourato Coelho"
+    assert payload["totals"] == {"occurrences": 8, "incidents": 7}
+    assert payload["events_without_hour"] == 1
+    by_id = {bucket["id"]: bucket for bucket in payload["hour_buckets"]}
+    assert by_id["tarde"] == {
+        "id": "tarde",
+        "label": "Tarde (12–17h)",
+        "occurrences": 1,
+        "violent": 1,
+    }
+
+
+def test_rua_eventos_text(settings):
+    _seed_street(settings)
+    result = runner.invoke(app, ["rua", "Mourato Coelho", "--distrito", "Pinheiros", "--eventos"])
+    assert result.exit_code == 0
+    output = result.output
+    assert "Eventos da rua" in output
+    assert "Tarde (12–17h)" in output
+    assert "Sem hora informada" in output
+
+
+def test_rua_eventos_limite(settings):
+    _seed_street(settings)
+    result = runner.invoke(
+        app,
+        [
+            "rua",
+            "Mourato Coelho",
+            "--distrito",
+            "Pinheiros",
+            "--eventos",
+            "--limite",
+            "2",
+            "--json",
+        ],
+    )
+    assert result.exit_code == 0
+    payload = json.loads(result.output)
+    assert len(payload["events"]) == 2
+    assert payload["dropped_events"] == 6
+
+
+def test_rua_eventos_invalid_limite_exits_1(settings):
+    _seed_street(settings)
+    result = runner.invoke(
+        app, ["rua", "Mourato Coelho", "--distrito", "Pinheiros", "--eventos", "--limite", "0"]
+    )
+    assert result.exit_code == 1
+
+
 def test_rua_not_found_exits_2(settings):
     _seed_street(settings)
     result = runner.invoke(app, ["rua", "Mourato", "--distrito", "Pinheiros"])

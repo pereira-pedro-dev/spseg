@@ -68,33 +68,126 @@ def make_street_facts() -> pd.DataFrame:
     - 1 sem logradouro;
     - 1 de invasão de residência e 1 de violência sexual, com logradouro válido.
     Visíveis para rua: 13. Suprimidos: 2. Ausentes: 1. Categorias excluídas: 2.
+    Horas de Mourato Coelho: 2 na madrugada, 2 na manhã, 1 na tarde, 2 na noite
+    e 1 sem hora informada (BO006; violentos: 1 madrugada, 1 tarde, 1 noite).
     """
     from spseg.config import SUPPRESSED_MARKER
 
     rows = [
-        # (logradouro, bo, natureza, tipo_local, crime_category)
-        ("RUA MOURATO COELHO", "BO001", "ROUBO - OUTROS", "Via Pública", "crime_violento"),
-        ("RUA MOURATO COELHO", "BO002", "ROUBO - OUTROS", "Via Pública", "crime_violento"),
-        ("RUA MOURATO COELHO", "BO003", "HOMICÍDIO DOLOSO", "Via Pública", "crime_violento"),
-        ("RUA MOURATO COELHO", "BO004", "FURTO - OUTROS", "Residência", "crime_nao_violento"),
-        ("RUA MOURATO COELHO", "BO004", "FURTO - OUTROS", "Residência", "crime_nao_violento"),
-        ("RUA MOURATO COELHO", "BO005", "FURTO - OUTROS", "Via Pública", "crime_nao_violento"),
-        ("RUA MOURATO COELHO", "BO006", "FURTO - OUTROS", "Via Pública", "crime_nao_violento"),
-        ("RUA MOURATO COELHO", "BO007", "FURTO - OUTROS", "Via Pública", "crime_nao_violento"),
-        ("AVENIDA CAPRI", "BO101", "ROUBO - OUTROS", "Terminal/Estação", "crime_violento"),
-        ("AVENIDA CAPRI", "BO102", "FURTO - OUTROS", "Terminal/Estação", "crime_nao_violento"),
-        ("AVENIDA CAPRI", "BO103", "FURTO - OUTROS", "Terminal/Estação", "crime_nao_violento"),
-        ("AVENIDA CAPRI", "BO104", "FURTO - OUTROS", "Terminal/Estação", "crime_nao_violento"),
-        ("AVENIDA CAPRI", "BO105", "FURTO - OUTROS", "Terminal/Estação", "crime_nao_violento"),
-        (SUPPRESSED_MARKER, "BO201", "ROUBO - OUTROS", "Via Pública", "crime_violento"),
-        (SUPPRESSED_MARKER, "BO202", "PORTE DE ENTORPECENTES", "Via Pública", "outros"),
-        ("", "BO301", "ROUBO - OUTROS", "Via Pública", "crime_violento"),
-        ("RUA DAS FLORES", "BO401", "INVASAO DE RESIDENCIA", "Residência", "invasao_residencia"),
-        ("RUA DAS FLORES", "BO501", "ESTUPRO", "Residência", "violencia_sexual"),
+        # (logradouro, bo, natureza, tipo_local, crime_category, hora)
+        (
+            "RUA MOURATO COELHO",
+            "BO001",
+            "ROUBO - OUTROS",
+            "Via Pública",
+            "crime_violento",
+            "02:10:00",
+        ),
+        (
+            "RUA MOURATO COELHO",
+            "BO002",
+            "ROUBO - OUTROS",
+            "Via Pública",
+            "crime_violento",
+            "23:40:00",
+        ),
+        (
+            "RUA MOURATO COELHO",
+            "BO003",
+            "HOMICÍDIO DOLOSO",
+            "Via Pública",
+            "crime_violento",
+            "12:30:00",
+        ),
+        (
+            "RUA MOURATO COELHO",
+            "BO004",
+            "FURTO - OUTROS",
+            "Residência",
+            "crime_nao_violento",
+            "07:15:00",
+        ),
+        (
+            "RUA MOURATO COELHO",
+            "BO004",
+            "FURTO - OUTROS",
+            "Residência",
+            "crime_nao_violento",
+            "07:15:00",
+        ),
+        (
+            "RUA MOURATO COELHO",
+            "BO005",
+            "FURTO - OUTROS",
+            "Via Pública",
+            "crime_nao_violento",
+            "00:05:00",
+        ),
+        (
+            "RUA MOURATO COELHO",
+            "BO006",
+            "FURTO - OUTROS",
+            "Via Pública",
+            "crime_nao_violento",
+            None,
+        ),
+        (
+            "RUA MOURATO COELHO",
+            "BO007",
+            "FURTO - OUTROS",
+            "Via Pública",
+            "crime_nao_violento",
+            "18:45:00",
+        ),
+        ("AVENIDA CAPRI", "BO101", "ROUBO - OUTROS", "Terminal/Estação", "crime_violento", None),
+        (
+            "AVENIDA CAPRI",
+            "BO102",
+            "FURTO - OUTROS",
+            "Terminal/Estação",
+            "crime_nao_violento",
+            None,
+        ),
+        (
+            "AVENIDA CAPRI",
+            "BO103",
+            "FURTO - OUTROS",
+            "Terminal/Estação",
+            "crime_nao_violento",
+            None,
+        ),
+        (
+            "AVENIDA CAPRI",
+            "BO104",
+            "FURTO - OUTROS",
+            "Terminal/Estação",
+            "crime_nao_violento",
+            None,
+        ),
+        (
+            "AVENIDA CAPRI",
+            "BO105",
+            "FURTO - OUTROS",
+            "Terminal/Estação",
+            "crime_nao_violento",
+            None,
+        ),
+        (SUPPRESSED_MARKER, "BO201", "ROUBO - OUTROS", "Via Pública", "crime_violento", "01:00:00"),
+        (SUPPRESSED_MARKER, "BO202", "PORTE DE ENTORPECENTES", "Via Pública", "outros", "02:00:00"),
+        ("", "BO301", "ROUBO - OUTROS", "Via Pública", "crime_violento", "03:00:00"),
+        (
+            "RUA DAS FLORES",
+            "BO401",
+            "INVASAO DE RESIDENCIA",
+            "Residência",
+            "invasao_residencia",
+            "04:00:00",
+        ),
+        ("RUA DAS FLORES", "BO501", "ESTUPRO", "Residência", "violencia_sexual", "05:00:00"),
     ]
     date = pd.Timestamp("2024-01-05")
     records = []
-    for logradouro, bo, natureza, tipo_local, category in rows:
+    for logradouro, bo, natureza, tipo_local, category, hora in rows:
         records.append(
             {
                 "num_bo": bo[2:],
@@ -102,6 +195,7 @@ def make_street_facts() -> pd.DataFrame:
                 "bo_key": f"2024/{bo}",
                 "data_registro": date,
                 "data_ocorrencia": date,
+                "hora_ocorrencia": hora,
                 "bairro_raw": "Pinheiros",
                 "bairro_nome": "Pinheiros",
                 "bairro_id": "pinheiros",

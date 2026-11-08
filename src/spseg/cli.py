@@ -12,6 +12,7 @@ from rich.console import Console
 from rich.table import Table
 
 from spseg.analysis.compare import build_compare
+from spseg.analysis.street_events import build_street_events
 from spseg.analysis.street_summary import NoStreetData, build_street_summary
 from spseg.analysis.summary import BairroNotFound, CacheMissing, build_summary
 from spseg.config import DEFAULT_MUNICIPIO, Settings, get_settings
@@ -30,11 +31,13 @@ from spseg.render.console import (
     render_check,
     render_compare,
     render_distrito_list,
+    render_street_events,
     render_street_summary,
     render_summary,
 )
 from spseg.render.export import (
     compare_to_json,
+    street_events_to_json,
     street_summary_to_json,
     summary_to_json,
 )
@@ -278,18 +281,32 @@ def _show_street(
     desde: str | None,
     ate: str | None,
     json_output: bool,
+    eventos: bool = False,
+    limite: int | None = None,
 ) -> None:
     settings = _settings()
     try:
-        summary = build_street_summary(
-            settings,
-            rua,
-            distrito,
-            municipio=municipio,
-            since=_parse_date(desde, "--desde"),
-            until=_parse_date(ate, "--ate"),
-            years=anos,
-        )
+        if eventos:
+            summary = build_street_events(
+                settings,
+                rua,
+                distrito,
+                municipio=municipio,
+                since=_parse_date(desde, "--desde"),
+                until=_parse_date(ate, "--ate"),
+                years=anos,
+                limite=limite,
+            )
+        else:
+            summary = build_street_summary(
+                settings,
+                rua,
+                distrito,
+                municipio=municipio,
+                since=_parse_date(desde, "--desde"),
+                until=_parse_date(ate, "--ate"),
+                years=anos,
+            )
     except CacheMissing as exc:
         _fail(str(exc), code=3)
     except BairroNotFound as exc:
@@ -317,9 +334,15 @@ def _show_street(
         _fail(str(exc))
 
     if json_output:
-        typer.echo(street_summary_to_json(summary))
+        if eventos:
+            typer.echo(street_events_to_json(summary))
+        else:
+            typer.echo(street_summary_to_json(summary))
     else:
-        render_street_summary(summary)
+        if eventos:
+            render_street_events(summary)
+        else:
+            render_street_summary(summary)
 
 
 @app.command()
@@ -334,9 +357,21 @@ def rua(
     ),
     desde: str | None = typer.Option(None, "--desde", help="Data inicial (AAAA-MM-DD)."),
     ate: str | None = typer.Option(None, "--ate", help="Data final (AAAA-MM-DD)."),
+    eventos: bool = typer.Option(
+        False,
+        "--eventos",
+        help="Lista os registros da rua com data e hora em vez do resumo.",
+    ),
+    limite: int | None = typer.Option(
+        None,
+        "--limite",
+        help="Com --eventos: mostra só os N primeiros registros (cronológico).",
+    ),
     json_output: bool = typer.Option(False, "--json", help="Saída JSON."),
 ) -> None:
-    """Resumo de segurança de uma rua dentro de um distrito."""
+    """Resumo de segurança de uma rua dentro de um distrito (ou a lista de eventos)."""
+    if limite is not None and limite <= 0:
+        _fail("--limite deve ser um número positivo.", code=1)
     _show_street(
         nome,
         distrito=distrito,
@@ -345,6 +380,8 @@ def rua(
         desde=desde,
         ate=ate,
         json_output=json_output,
+        eventos=eventos,
+        limite=limite,
     )
 
 

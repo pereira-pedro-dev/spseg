@@ -10,8 +10,10 @@ from spseg.models import (
     CompareDistrict,
     CompareSummary,
     DistrictCategoryContext,
+    EventDetail,
     NaturezaWeights,
     StreetCategory,
+    StreetEvents,
     StreetSummary,
 )
 
@@ -275,3 +277,59 @@ def street_summary_to_dict(summary: StreetSummary) -> dict:
 
 def street_summary_to_json(summary: StreetSummary, *, indent: int = 2) -> str:
     return json.dumps(street_summary_to_dict(summary), ensure_ascii=False, indent=indent)
+
+
+def _event_to_dict(event: EventDetail) -> dict:
+    return {
+        "data": event.data.isoformat(),
+        "hora": event.hora,
+        "categoria_id": event.categoria_id,
+        "categoria": event.categoria,
+        "natureza": event.natureza,
+        "tipo_local": event.tipo_local,
+    }
+
+
+def street_events_to_dict(summary: StreetEvents) -> dict:
+    """Contrato JSON da lista de eventos: sem população, taxa ou tendência."""
+    return {
+        "nivel": summary.nivel,
+        "rua": summary.rua,
+        "rua_raw": summary.rua_raw,
+        "rua_key": summary.rua_key,
+        "rua_tipo": summary.rua_tipo,
+        "distrito": summary.distrito,
+        "distrito_id": summary.distrito_id,
+        "municipio": summary.municipio,
+        "period": {
+            "start": summary.period.start.isoformat(),
+            "end": summary.period.end.isoformat(),
+            "label": summary.period.label,
+            "partial": summary.period.partial,
+            "notes": list(summary.period.notes),
+        },
+        "totals": {
+            "occurrences": summary.total_occurrences,
+            "incidents": summary.total_incidents,
+        },
+        "hour_buckets": [
+            {
+                "id": bucket.id,
+                "label": bucket.label,
+                "occurrences": bucket.occurrences,
+                "violent": bucket.violent,
+            }
+            for bucket in summary.hour_buckets
+        ],
+        "events_without_hour": summary.events_without_hour,
+        "events": [_event_to_dict(event) for event in summary.events],
+        "dropped_events": summary.dropped_events,
+        "taxonomy_provisional": summary.taxonomy_provisional,
+        "generated_at": summary.generated_at.isoformat(timespec="seconds"),
+    }
+
+
+def street_events_to_json(summary: StreetEvents, *, indent: int = 2) -> str:
+    return json.dumps(
+        street_events_to_dict(summary), ensure_ascii=False, default=str, indent=indent
+    )

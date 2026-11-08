@@ -105,6 +105,10 @@ uv run spseg compare pinheiros moema --json --anos 1
 uv run spseg rua "Mourato Coelho" --distrito Pinheiros
 uv run spseg rua "Mourato Coelho" --distrito Pinheiros --json
 
+# Cada registro da rua, em ordem cronológica (com --limite para truncar)
+uv run spseg rua "Mourato Coelho" --distrito Pinheiros --eventos
+uv run spseg rua "Mourato Coelho" --distrito Pinheiros --eventos --limite 20 --json
+
 # Lista/busca distritos presentes no cache
 uv run spseg list --search pin
 
@@ -124,7 +128,7 @@ uv run spseg doctor
 | `spseg list` | Distritos do cache, contagem e taxa de resolução. |
 | `spseg bairro <nome>` | Resumo por categoria + score relativo; bairro é tratado como alias. |
 | `spseg distrito <nome>` | Alias de `spseg bairro`. |
-| `spseg rua <rua> --distrito <nome>` | Resumo de uma rua dentro do distrito. |
+| `spseg rua <rua> --distrito <nome>` | Resumo de uma rua dentro do distrito (`--eventos` lista os registros). |
 | `spseg compare <2–6 nomes>` | Comparação lado a lado na mesma janela, com score. |
 | `spseg doctor` | Estado do cache e dos arquivos de referência. |
 
@@ -138,6 +142,8 @@ uv run spseg doctor
 | `--ate AAAA-MM-DD` | Fim explícito. |
 | `--municipio` | Padrão: `São Paulo`. |
 | `--json` | Saída JSON para script/`jq`. |
+| `--eventos` | (só em `rua`) Troca o resumo pela lista de eventos da rua. |
+| `--limite N` | (só com `--eventos`) Mostra só os N primeiros registros, em ordem cronológica. |
 
 Sem `--anos`/`--desde`/`--ate`, o período vai do início da cobertura dos
 arquivos (menor `data_registro`) até a ocorrência mais recente. Datas de
@@ -255,6 +261,33 @@ O grão rua mede **crime registrado em espaço público no logradouro**, não o
 risco do imóvel. Uma rua com muitos furtos pode refletir comércio, terminal ou
 grande circulação. A saída avisa quando um tipo de local que não é via pública
 concentra 25% ou mais dos registros.
+
+### Lista de eventos (`spseg rua --eventos`)
+
+Com `n` pequeno (uma rua perto de casa, uma janela curta), o resumo por
+categoria esconde o que aconteceu de fato. O `--eventos` mostra cada registro
+da rua em ordem cronológica, com data, hora, categoria, natureza e tipo de
+local — sem `num_bo`, sem taxa, sem score. `nivel` no JSON: `rua-eventos`.
+
+```bash
+uv run spseg rua "Mourato Coelho" --distrito Pinheiros --eventos
+uv run spseg rua "Mourato Coelho" --distrito Pinheiros --eventos --limite 20 --json
+```
+
+- **Horário por faixa do dia** — madrugada 00–05h, manhã 06–11h,
+  tarde 12–17h, noite 18–23h, com contagem de violentos
+  (`crime_violento`) e `% da rua`.
+- **`n/d` na hora** — a coluna `hora_ocorrencia` da SSP vem ausente em
+  cerca de um terço dos registros. Nesses casos a linha aparece com hora
+  `n/d`, sai das faixas por horário e entra no contador
+  "Sem hora informada". A hora nunca é fabricada nem chutada.
+- **`--limite N`** — corta a lista na ordem cronológica e anota
+  "mostrando X de Y". `--limite 0` é uso inválido (exit 1).
+- **Mesmas exclusões do grão rua** — invasão de residência e violência
+  sexual nunca aparecem; logradouro suprimido/ausente não é atribuído.
+- **`n` grande** — acima de 60 eventos sem `--limite`, o console avisa
+  que a leitura item a item não é útil e sugere estreitar a janela com
+  `--anos`/`--desde`/`--ate`.
 
 ## Arquitetura
 

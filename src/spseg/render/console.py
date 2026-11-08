@@ -7,7 +7,8 @@ from rich.markup import escape
 from rich.panel import Panel
 from rich.table import Table
 
-from spseg.models import BairroSummary, CompareSummary, StreetSummary
+from spseg.analysis.street_events import STREET_EVENTS_WARN_LIMIT
+from spseg.models import BairroSummary, CompareSummary, StreetEvents, StreetSummary
 from spseg.quality.checks import CheckSection
 
 CONSOLE = Console()
@@ -438,6 +439,88 @@ def render_street_summary(summary: StreetSummary, console: Console | None = None
         console.print(
             "[yellow]Aviso:[/yellow] taxonomia provisória — as categorias não foram "
             "validadas. Não use este resumo como critério único de decisão."
+        )
+
+
+def render_street_events(summary: StreetEvents, console: Console | None = None) -> None:
+    console = console or CONSOLE
+    tipo = f" ({summary.rua_tipo})" if summary.rua_tipo else ""
+    header = (
+        f"[bold]Rua:[/bold] {escape(summary.rua)}{escape(tipo)}\n"
+        f"[bold]Distrito:[/bold] {escape(summary.distrito)} "
+        f"({escape(summary.municipio)})\n"
+        f"Período: {summary.period.label}\n"
+        f"Eventos: {fmt_int(summary.total_occurrences)} "
+        f"({fmt_int(summary.total_incidents)} BOs distintos)"
+    )
+    if summary.period.partial:
+        header += "\n[yellow]⚠ ano corrente incompleto na base[/yellow]"
+    if summary.dropped_events:
+        header += (
+            f"\n[yellow]⚠ mostrando os {fmt_int(len(summary.events))} primeiros de "
+            f"{fmt_int(summary.total_occurrences)}; use --limite para ver mais ou "
+            "estreite a janela com --anos/--desde/--ate[/yellow]"
+        )
+    console.print(Panel(header, title="Eventos da rua", expand=False))
+
+    buckets = Table(
+        title="Por horário do dia (da coluna `hora_ocorrencia` da SSP)",
+        show_header=True,
+        header_style="bold",
+        expand=False,
+    )
+    buckets.add_column("Período")
+    buckets.add_column("Ocorr.", justify="right")
+    buckets.add_column("Violentos", justify="right")
+    buckets.add_column("% da rua", justify="right")
+    total = summary.total_occurrences
+    for bucket in summary.hour_buckets:
+        share = bucket.occurrences / total if total else None
+        buckets.add_row(
+            escape(bucket.label),
+            fmt_int(bucket.occurrences),
+            fmt_int(bucket.violent),
+            _fmt_share(share),
+        )
+    console.print(buckets)
+    if summary.events_without_hour:
+        console.print(
+            f"[dim]Sem hora informada: {fmt_int(summary.events_without_hour)} de "
+            f"{fmt_int(total)} registros — não é possível atribuir período do dia. "
+            "A hora vem da SSP e pode ser faltante ou imprecisa.[/dim]"
+        )
+
+    if summary.total_occurrences > STREET_EVENTS_WARN_LIMIT and not summary.dropped_events:
+        console.print(
+            f"[yellow]n grande ({fmt_int(summary.total_occurrences)} eventos): "
+            "leitura item a item não é útil; estreite a janela com "
+            "--anos/--desde/--ate.[/yellow]"
+        )
+
+    table = Table(show_header=True, header_style="bold", expand=False)
+    table.add_column("Data")
+    table.add_column("Hora", justify="right")
+    table.add_column("Categoria")
+    table.add_column("Natureza")
+    table.add_column("Tipo de local")
+    for event in summary.events:
+        table.add_row(
+            event.data.strftime("%d/%m/%Y"),
+            escape(event.hora if event.hora else "n/d"),
+            escape(event.categoria),
+            escape(event.natureza),
+            escape(event.tipo_local),
+        )
+    console.print(table)
+    console.print(
+        "[dim]Eventos = registros por ocorrência × natureza, obrigados às regras do "
+        "grão rua: só linhas com logradouro atribuível; sem taxa, sem tendência e "
+        "sem score.[/dim]"
+    )
+    if summary.taxonomy_provisional:
+        console.print(
+            "[yellow]Aviso:[/yellow] taxonomia provisória — categorias sujeitas a "
+            "revisão na sessão de metodologia."
         )
 
 

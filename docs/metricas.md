@@ -128,6 +128,23 @@ Sem denominador: não há taxa per capita/domicílio. Em vez disso:
 Ver também: avisos de equipamento (`tipo_local`) e de rua atravessando
 distritos no README.
 
+### Lista de eventos (`spseg rua --eventos`)
+
+Vista item a item da mesma resolução `(rua, distrito)` do resumo. Sem taxa,
+sem tendência, sem score — `nivel = "rua-eventos"`.
+
+| Parte | Definição | Nota |
+|---|---|---|
+| `events` | cada linha atribuível à rua (ocorrência × natureza) com data, hora, categoria, natureza e tipo de local | ordenação cronológica `(data, hora, minuto, natureza)` |
+| `hour_buckets` | faixas fixas do dia: madrugada 00–05h, manhã 06–11h, tarde 12–17h, noite 18–23h; colunas `occurrences`, `violent` (`crime_violento`) | `% da rua` usa o total de eventos da rua como denominador |
+| `events_without_hour` | linhas com `hora_ocorrencia` ausente ou inválida | ficam **fora** das faixas; hora nunca é fabricada nem chutada |
+| `dropped_events` | com `--limite N`, quantos eventos ficaram de fora do corte cronológico | `--limite 0` é uso inválido (exit 1) |
+
+Mesmas exclusões do grão rua: `invasao_residencia` e `violencia_sexual`
+nunca aparecem; logradouro suprimido ou ausente não é atribuído. Com
+`n` grande (> 60 eventos), o console avisa que a leitura item a item não é
+útil e sugere estreitar a janela (`--anos`/`--desde`/`--ate`).
+
 ## `spseg compare`
 
 - 2–6 distritos por execução, na **mesma janela** (`--anos`,

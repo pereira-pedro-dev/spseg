@@ -6,6 +6,7 @@ Não há taxa per capita/domicílio, tendência nem ranking.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import date, datetime
 
 import pandas as pd
@@ -36,6 +37,7 @@ from spseg.geo.street import (
 from spseg.geo.text import suppressed_mask
 from spseg.models import (
     DistrictCategoryContext,
+    Period,
     StreetCategory,
     StreetQuality,
     StreetSummary,
@@ -175,7 +177,37 @@ def _not_visible_by_category(
     return result
 
 
-def build_street_summary(
+@dataclass(frozen=True)
+class StreetBinding:
+    """Resultado comum da resolução `(rua, distrito)`, compartilhado pelas vistas.
+
+    Contém o distrito, o período e o recorte de linhas da rua pronto para
+    qualquer vista de rua (resumo ou lista de eventos), sem recalcular nada.
+    """
+
+    rua_query: str
+    rua_nome: str
+    rua_raw: str
+    rua_key: str
+    rua_tipo: str | None
+    match_method: str
+    distrito: str
+    distrito_id: str | None
+    municipio: str
+    taxonomy: Taxonomy
+    reference: ReferenceData
+    reference_changed: bool
+    period: Period
+    street_frame: pd.DataFrame
+    visible_frame: pd.DataFrame
+    district_frame: pd.DataFrame
+    suppressed_logradouro: int
+    missing_logradouro: int
+    district_method_counts: dict[str, int]
+    district_resolution_rate: float | None
+
+
+def build_street_binding(
     settings: Settings,
     rua: str,
     distrito: str,
@@ -185,7 +217,12 @@ def build_street_summary(
     until: object = None,
     years: int | None = None,
     today: date | None = None,
-) -> StreetSummary:
+) -> StreetBinding:
+    """Resolve `(rua, distrito)` e devolve o recorte de linhas da rua.
+
+    Erros possíveis: `CacheMissing` (sem cache), `BairroNotFound`,
+    `StreetNotFound`, `StreetAmbiguous`, `NoStreetData` e `ValueError`.
+    """
     if not cached_years(settings, "facts"):
         raise CacheMissing(
             "Nenhum cache encontrado. Rode `uv run spseg ingest` antes de consultar."
@@ -200,6 +237,9 @@ def build_street_summary(
 
     manifest = load_manifest(settings)
     reference = load_reference(settings)
+    reference_changed = bool(
+        reference.has_registry and reference.version != manifest.get("reference_version")
+    )
     taxonomy = reference.taxonomy
     if taxonomy is None:  # pragma: no cover - load_reference sempre devolve taxonomia
         raise RuntimeError("Taxonomia indisponível.")
@@ -277,23 +317,6 @@ def build_street_summary(
     street_frame = visible_frame[visible_frame["_rua_key"] == match.key]
     raw_choices = street_frame["_rua_raw"].dropna().astype("string")
     rua_raw = str(raw_choices.value_counts().index[0]) if not raw_choices.empty else match.key
-    rua_nome = display_street_name(match.key)
-    rua_tipo = street_type(match.key)
-
-    categories, district_categories = _summarize_categories(
-        street_frame, visible_frame, district_frame, taxonomy
-    )
-
-    total_occurrences = len(street_frame)
-    total_incidents = count_incidents(street_frame)
-    district_total_occurrences = len(district_frame)
-    district_total_incidents = count_incidents(district_frame)
-    district_visible_occurrences = len(visible_frame)
-    district_visible_incidents = count_incidents(visible_frame)
-    district_coverage = _share(district_visible_occurrences, district_total_occurrences)
-
-    not_visible = district_frame[~visible_mask]
-    not_visible_by_category = _not_visible_by_category(not_visible, taxonomy)
 
     if "bairro_method" in district_frame.columns:
         district_method_counts = {
@@ -304,8 +327,76 @@ def build_street_summary(
         district_method_counts = {}
     district_resolution_rate = _share(
         sum(district_method_counts.get(method, 0) for method in RESOLVED_METHODS),
-        district_total_occurrences,
+        len(district_frame),
     )
+
+    return StreetBinding(
+        rua_query=rua,
+        rua_nome=display_street_name(match.key),
+        rua_raw=rua_raw,
+        rua_key=match.key,
+        rua_tipo=street_type(match.key),
+        match_method=match.method,
+        distrito=entry.bairro_nome,
+        distrito_id=entry.distrito_id or entry.bairro_id,
+        municipio=municipio,
+        taxonomy=taxonomy,
+        reference=reference,
+        reference_changed=reference_changed,
+        period=period,
+        street_frame=street_frame,
+        visible_frame=visible_frame,
+        district_frame=district_frame,
+        suppressed_logradouro=int(suppressed.sum()),
+        missing_logradouro=int(missing.sum()),
+        district_method_counts=district_method_counts,
+        district_resolution_rate=district_resolution_rate,
+    )
+
+
+def build_street_summary(
+    settings: Settings,
+    rua: str,
+    distrito: str,
+    *,
+    municipio: str = DEFAULT_MUNICIPIO,
+    since: object = None,
+    until: object = None,
+    years: int | None = None,
+    today: date | None = None,
+) -> StreetSummary:
+    binding = build_street_binding(
+        settings,
+        rua,
+        distrito,
+        municipio=municipio,
+        since=since,
+        until=until,
+        years=years,
+        today=today,
+    )
+    street_frame = binding.street_frame
+    visible_frame = binding.visible_frame
+    district_frame = binding.district_frame
+
+    categories, district_categories = _summarize_categories(
+        street_frame, visible_frame, district_frame, binding.taxonomy
+    )
+
+    total_occurrences = len(street_frame)
+    total_incidents = count_incidents(street_frame)
+    district_total_occurrences = len(district_frame)
+    district_total_incidents = count_incidents(district_frame)
+    district_visible_occurrences = len(visible_frame)
+    district_visible_incidents = count_incidents(visible_frame)
+    district_coverage = _share(district_visible_occurrences, district_total_occurrences)
+
+    not_visible_mask = ~district_frame.index.isin(visible_frame.index)
+    not_visible = district_frame[not_visible_mask]
+    not_visible_by_category = _not_visible_by_category(not_visible, binding.taxonomy)
+
+    district_method_counts = binding.district_method_counts
+    district_resolution_rate = binding.district_resolution_rate
 
     top_natures = _top_counts(
         street_frame["natureza"] if "natureza" in street_frame.columns else None,
@@ -339,7 +430,7 @@ def build_street_summary(
             "as contagens do distrito (e da rua) são piso."
         )
 
-    notes.extend(period.notes)
+    notes.extend(binding.period.notes)
     years_cached = cached_years(settings, "facts")
     if len(years_cached) < 3:
         notes.append(
@@ -347,18 +438,18 @@ def build_street_summary(
             + ", ".join(str(year) for year in years_cached)
             + "; períodos e comparações ficam incompletos até os outros anos serem ingeridos."
         )
-    if match.method != "exact":
-        label = METHOD_LABELS.get(match.method, match.method)
-        notes.append(f"'{rua}' interpretado como '{display_street(match.key)}' ({label}).")
-    if reference.status.issues:
-        notes.extend(reference.status.issues)
-    if reference.has_registry and reference.version != manifest.get("reference_version"):
+    if binding.match_method != "exact":
+        label = METHOD_LABELS.get(binding.match_method, binding.match_method)
+        notes.append(f"'{rua}' interpretado como '{display_street(binding.rua_key)}' ({label}).")
+    if binding.reference.status.issues:
+        notes.extend(binding.reference.status.issues)
+    if binding.reference_changed:
         notes.append(
             "A referência mudou desde o último `ingest`; rode novamente para "
             "aplicar aliases/população novas."
         )
 
-    months = max(1, round(period.months))
+    months = max(1, round(binding.period.months))
     if total_occurrences < SMALL_SAMPLE:
         notes.append(
             f"n pequeno ({total_occurrences} registros em {months} meses): use apenas "
@@ -389,7 +480,7 @@ def build_street_summary(
                 f"tipo de local ausente em {_pct(missing_tipo)} dos registros da rua; "
                 "a composição por tipo fica incompleta."
             )
-    if taxonomy.provisional:
+    if binding.taxonomy.provisional:
         notes.append(
             "Taxonomia provisória: as categorias ainda não foram validadas "
             "na sessão de metodologia."
@@ -399,8 +490,8 @@ def build_street_summary(
         rows_in_street=total_occurrences,
         rows_in_district=district_total_occurrences,
         rows_visible=district_visible_occurrences,
-        suppressed_logradouro=int(suppressed.sum()),
-        missing_logradouro=int(missing.sum()),
+        suppressed_logradouro=binding.suppressed_logradouro,
+        missing_logradouro=binding.missing_logradouro,
         not_visible_occurrences=district_total_occurrences - district_visible_occurrences,
         district_method_counts=district_method_counts,
         district_resolution_rate=district_resolution_rate,
@@ -408,14 +499,14 @@ def build_street_summary(
     )
 
     return StreetSummary(
-        rua=rua_nome,
-        rua_raw=rua_raw,
-        rua_key=match.key,
-        rua_tipo=rua_tipo,
-        distrito=entry.bairro_nome,
-        distrito_id=entry.distrito_id or entry.bairro_id,
-        municipio=municipio,
-        period=period,
+        rua=binding.rua_nome,
+        rua_raw=binding.rua_raw,
+        rua_key=binding.rua_key,
+        rua_tipo=binding.rua_tipo,
+        distrito=binding.distrito,
+        distrito_id=binding.distrito_id,
+        municipio=binding.municipio,
+        period=binding.period,
         total_occurrences=total_occurrences,
         total_incidents=total_incidents,
         share_of_district=_share(total_occurrences, district_visible_occurrences),
@@ -430,7 +521,7 @@ def build_street_summary(
         top_natures=top_natures,
         top_tipo_local=top_tipo_local,
         quality=quality,
-        taxonomy_provisional=taxonomy.provisional,
+        taxonomy_provisional=binding.taxonomy.provisional,
         generated_at=datetime.now(),
     )
 
@@ -442,5 +533,7 @@ __all__ = [
     "NoStreetData",
     "SMALL_SAMPLE",
     "STREET_EXCLUDED_CATEGORIES",
+    "StreetBinding",
+    "build_street_binding",
     "build_street_summary",
 ]
